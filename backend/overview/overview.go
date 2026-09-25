@@ -1,0 +1,84 @@
+// Package overview persists the server overview the AI agent generates. The
+// agent SSHes into the connected server, snapshots the running services, then
+// calls GenerateOverview with the result — Go just stores it as JSON and pings
+// the frontend so the Overview screen refreshes. Like sessions, it's privileged
+// local storage exposed as Wails bindings; GenerateOverview is also wired up as
+// an AI tool so the agent can write the overview itself.
+package overview
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"VibeOps/backend/jsonstore"
+)
+
+// App is one service the agent found — either running on the SSH server or
+// pulled from a connector (e.g. Vercel). CPU/memory are intentionally absent;
+// the screen shows them as placeholders for now.
+type App struct {
+	Name     string `json:"name"`     // service/app name, e.g. "postgres"
+	Provider string `json:"provider"` // where it came from: the server name, or a connector name like "vercel"
+	Kind     string `json:"kind"`     // what it is: "API" | "frontend" | "App"
+	Domain   string `json:"domain"`   // public domain if exposed, else "internal · <port>"
+	Status   string `json:"status"`   // running | deploying | failed
+	Uptime   string `json:"uptime"`   // e.g. "12d" or "—" if unknown
+}
+
+// Data is the whole overview. Empty Server means no server is connected, which
+// the screen renders as the CTA empty state.
+type Data struct {
+	Server    string `json:"server"`    // host the snapshot came from, "" if none connected
+	Summary   string `json:"summary"`   // one-line header, e.g. "6 services running · all healthy"
+	Insight   string `json:"insight"`   // the "VibeOps noticed" note, plain text
+	Apps      []App  `json:"apps"`      // services running on the server
+	UpdatedAt int64  `json:"updatedAt"` // unix seconds, stamped on write
+}
+
+type Overview struct{}
+
+func NewOverview() *Overview { return &Overview{} }
+
+// eventCtx is the Wails runtime context for emitting refresh events; set once
+// at startup. ponytail: package-level, fine for a single window.
+var eventCtx context.Context
+
+// SetEventCtx wires the runtime context. Call from the app's OnStartup.
+func SetEventCtx(ctx context.Context) { eventCtx = ctx }
+
+func overviewPath() string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		dir = "."
+	}
+	return filepath.Join(dir, "VibeOps", "overview.json")
+}
+
+// Get returns the stored overview; a missing file yields the zero value (which
+// the screen shows as the empty CTA state).
+func (o *Overview) Get() (Data, error) {
+	return jsonstore.Read[Data](overviewPath())
+}
+
+// GenerateOverview stores the AI-generated overview (JSON matching Data) and
+// pings the frontend to refresh. This is the tool the agent calls after it
+// SSHes in and snapshots the server's services.
+func (o *Overview) GenerateOverview(data string) error {
+	var d Data
+	if err := json.Unmarshal([]byte(data), &d); err != nil {
+		return err
+	}
+	d.UpdatedAt = time.Now().Unix()
+	if err := jsonstore.Write(overviewPath(), d); err != nil {
+		return err
+	}
+	if eventCtx != nil {
+		runtime.EventsEmit(eventCtx, "overview:updated")
+	}
+	return nil
+}

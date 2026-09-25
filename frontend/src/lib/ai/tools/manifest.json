@@ -1,0 +1,324 @@
+[
+  {
+    "name": "getSystemInfo",
+    "description": "Get information about the local machine this desktop app is running on: operating system, CPU architecture, CPU count, hostname, and current time. Call this whenever the user asks anything about the host or system.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "getCwd",
+    "description": "Get the current directory of the desktop app. Call this when the user asks about a file or directory.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "askQuestion",
+    "description": "Ask the user a question and wait for their answer. Use this when you are blocked on a decision that is genuinely theirs to make and cannot be resolved from the request, the code, or a sensible default \u2014 not for choices with an obvious answer or facts you can check yourself. Returns the user's answer as text. Blocks until they respond, so ask one clear question at a time.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "The full question, ending in a question mark."
+        },
+        "header": {
+          "type": "string",
+          "description": "Very short label for the dialog, max 12 chars, e.g. \"Auth method\"."
+        },
+        "options": {
+          "type": "string",
+          "description": "Optional JSON array of 2-4 answer strings, e.g. [\"Postgres\",\"SQLite\"]. Omit for a free-text answer. The user can always type their own answer instead."
+        }
+      },
+      "required": ["question"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "getAllowedServers",
+    "description": "List the servers the user has authorized VibeOps to manage. Call this when the user refers to a server; use the returned host/user/port/keyPath with sshConnect.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "shellAccess",
+    "description": "Run a full command line on the LOCAL machine through a POSIX shell (on Windows this is WSL). Use this when you need shell features: pipes (|), redirects (>, 2>), &&/||, globbing (*), $VAR expansion, quotes, or subshells. Pass the entire command line as one `script` string, e.g. script: \"echo $HOME && ls -la ~ | head -20\". Returns the combined stdout+stderr. Use sshRun instead for remote servers. The local shell is sandboxed: sudo is rejected and credential directories (~/.ssh, ~/.aws, ~/.gnupg) read as empty. Do not try to work around either — anything needing root needs a server, via sshConnect + sudoAuth + sshRun.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string",
+          "description": "The full command line to run locally"
+        }
+      },
+      "required": ["script"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "sshConnect",
+    "description": "Open a persistent SSH connection to a remote server and get back a sessionId for running commands on it with sshRun. Authentication is by private key file only (no passwords). If keyPath is omitted, ~/.ssh/id_ed25519 then ~/.ssh/id_rsa are tried. The server's host key must already be in the user's ~/.ssh/known_hosts; if the connection fails with an unknown-host error, tell the user to ssh into the server once from their terminal first — do not retry. Passphrase-protected keys are not supported and return a clear error. Reconnecting to the same user/host/port replaces the old connection and returns the same sessionId. Call sshDisconnect when you are done with a server.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Hostname or IP of the server, e.g. \"1.2.3.4\" or \"deploy.example.com\""
+        },
+        "port": {
+          "type": "number",
+          "description": "SSH port. Omit for 22."
+        },
+        "user": {
+          "type": "string",
+          "description": "Login user on the server, e.g. \"root\" or \"ubuntu\""
+        },
+        "keyPath": {
+          "type": "string",
+          "description": "Absolute path to a private key file. Omit to try ~/.ssh/id_ed25519 then ~/.ssh/id_rsa."
+        }
+      },
+      "required": ["host", "user"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "sshRun",
+    "description": "Run one shell command line on a server previously connected with sshConnect, over the already-open connection (fast, no new handshake). Returns combined stdout+stderr; if the command exits non-zero, the output ends with a line like `[command failed: ...]` — treat that as the command failing, not the tool. IMPORTANT: each call runs in a fresh remote shell — cd, environment variables, and shell state do NOT persist between calls. Chain state into one call, e.g. `cd /app && git pull && npm install`. Shell features (pipes, &&, redirects, globbing, $VAR) all work. Commands are killed after 120 seconds, so never start long-lived foreground processes (servers, `tail -f`, watch) — background them, e.g. with systemd, `nohup ... &`, or the server's process manager. To run sudo commands, call sudoAuth once first so the user can authenticate. If the tool errors saying the session is dead, reconnect with sshConnect and retry once.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "The sessionId returned by sshConnect, e.g. \"root@1.2.3.4:22\""
+        },
+        "command": {
+          "type": "string",
+          "description": "The full command line to run remotely, e.g. \"cd /srv/app && docker compose up -d\""
+        }
+      },
+      "required": ["sessionId", "command"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "sshDisconnect",
+    "description": "Close an SSH connection opened with sshConnect. Call this when you are finished with a server. Safe to call even if the connection already dropped (it just errors saying the session is unknown).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "The sessionId returned by sshConnect"
+        }
+      },
+      "required": ["sessionId"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "sudoAuth",
+    "description": "Prompt the user for their sudo password before running sudo commands over SSH. Call this ONCE, before your first sudo sshRun; the password is held only for the current run and replayed into sudo automatically. Blocks until the user authenticates or declines. If it reports the user declined, do not attempt the sudo command. Write the command plainly as 'sudo <cmd>' — VibeOps authenticates sudo before it runs, so no -S, -p or -C, and no password handling of your own. Never put a password in the command string and never echo or pipe one: stdin is closed by the time your command runs. Applies to sshRun only: the local shell is sandboxed and rejects sudo.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The sudo command you intend to run, shown to the user so they know what they're authorizing."
+        }
+      },
+      "required": ["command"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "secretRequest",
+    "description": "Ask the user for a secret value you must NOT see — an API token, a database password or connection string, any .env value. VibeOps prompts them, holds the value for this run and never reveals it to you. Afterwards, write $SECRET_<NAME> (exactly the name you requested, UNQUOTED — VibeOps quotes it for the shell) anywhere the value is needed in an sshRun or shellAccess command, and it is substituted at execution time. Never ask the user to paste a secret into the chat, never echo one, and never try to read one back out of a file or command output.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name for the secret, letters/digits/underscore only, conventionally the env var it becomes, e.g. DATABASE_URL"
+        },
+        "reason": {
+          "type": "string",
+          "description": "One line shown to the user explaining what this value is for, e.g. \"Neon connection string for the production deploy\""
+        }
+      },
+      "required": ["name", "reason"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "useSkill",
+    "description": "Load the full instructions for a named skill before doing a task it covers (e.g. deploying with Cloudflare wrangler, the vercel CLI). The available skills are listed in your system prompt; pass one by name to get its SKILL.md body.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The skill's name" }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "generateOverview",
+    "description": "Store a fresh overview of the user's apps for the Overview screen. Gather from two kinds of source, then call this ONCE with the combined list:\n1. The SSH server: sshConnect and snapshot what's running (`systemctl list-units --type=service --state=running`, `docker ps`, uptime). For each service's domain, inspect the reverse proxy to map it to a public hostname: nginx (`/etc/nginx/sites-enabled/`, `server_name`), Caddy (`/etc/caddy/Caddyfile`), Traefik labels, or Apache vhosts.\n2. Connectors: if the Vercel CLI is authed (`vercel whoami`), run `vercel project ls` — one row per project with its Latest Production URL (the real domain). Set name = project, domain = that URL, uptime = \"—\". Use `vercel ls` only to read each project's latest deployment status (Ready→running, Building→deploying, Error→failed). IGNORE Cloudflare for now — do not include Workers.\nIf no server is connected AND no connector apps exist, call with server=\"\" and empty apps to show the connect CTA. Do NOT invent CPU/memory numbers; they are shown as placeholders for now.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "server": {
+          "type": "string",
+          "description": "The host snapshotted, e.g. \"root@1.2.3.4\". Empty string if no server is connected."
+        },
+        "summary": {
+          "type": "string",
+          "description": "One-line header, e.g. \"6 services running · all healthy\"."
+        },
+        "insight": {
+          "type": "string",
+          "description": "A short plain-language \"VibeOps noticed\" note about the apps, or \"\"."
+        },
+        "apps": {
+          "type": "array",
+          "description": "All apps: SSH services plus connector apps. Empty if nothing found / not connected.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Service/app name, e.g. \"postgres\"."
+              },
+              "provider": {
+                "type": "string",
+                "description": "Where this app comes from: the SSH server name for local services, or the connector name (e.g. \"vercel\") for connector apps."
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["API", "frontend", "App"],
+                "description": "What the app is: an API/backend service, a frontend site, or a general App."
+              },
+              "domain": {
+                "type": "string",
+                "description": "The public domain serving this app if it has one, e.g. \"api.you.dev\" (from the reverse proxy config, or the Vercel deployment URL). Only use \"internal · <port>\" (e.g. \"internal · 5432\") when the service is genuinely not exposed on any domain."
+              },
+              "status": {
+                "type": "string",
+                "enum": ["running", "deploying", "failed"]
+              },
+              "uptime": {
+                "type": "string",
+                "description": "Uptime, e.g. \"12d\", or \"—\" if unknown (connector apps: \"—\")."
+              }
+            },
+            "required": [
+              "name",
+              "provider",
+              "kind",
+              "domain",
+              "status",
+              "uptime"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["server", "summary", "insight", "apps"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "proposeProviders",
+    "description": "Show the user a visual card of which deployment provider you recommend for each service you found in the project. Call this ONCE, right after scanning the repo, INSTEAD of writing the same thing out as a paragraph or a markdown table — the card is what the user reads, so do not repeat its contents in your reply. Say only a sentence or two around it. After calling it, STOP and wait for the user to confirm or change the picks; do not start deploying and do not call proposePlan in the same turn.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "intro": {
+          "type": "string",
+          "description": "One plain sentence describing what this project is, e.g. \"A Next.js storefront with a Go payments API and a Postgres database.\""
+        },
+        "services": {
+          "type": "array",
+          "description": "One entry per deployable service found in the repo. A repo often holds several (web frontend, API, worker, cron, database).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "description": "Service name, e.g. \"web\" or \"payments-api\"." },
+              "kind": {
+                "type": "string",
+                "enum": ["frontend", "api", "worker", "cron", "database", "app"],
+                "description": "What this service is. Drawn as an icon, so it is how the user tells the parts of the repo apart at a glance \u2014 pick the closest fit rather than defaulting to \"app\"."
+              },
+              "path": { "type": "string", "description": "Path within the repo, e.g. \"apps/web\" or \".\" for the root." },
+              "stack": {
+                "type": "array",
+                "description": "The technologies this service is built with, one per entry and the language first, e.g. [\"TypeScript\", \"Next.js 15\", \"Prisma\"]. Drawn as a row of badges, so keep each entry to a name and version \u2014 no sentences, and at most four.",
+                "items": { "type": "string" }
+              },
+              "runs": { "type": "string", "description": "How it runs, in plain language, e.g. \"static build served at the edge\" or \"long-lived Node process\"." },
+              "provider": { "type": "string", "description": "The provider you recommend for this service, e.g. \"Vercel\", \"Neon\", or the name of one of the user's servers." },
+              "why": { "type": "string", "description": "One sentence on why this provider fits this service." },
+              "alternatives": {
+                "type": "array",
+                "description": "Other providers that would also work, best first. Empty if there is no reasonable second choice.",
+                "items": { "type": "string" }
+              },
+              "warning": {
+                "type": "string",
+                "description": "Only when something blocks the obvious choice — e.g. the service shells out to ffmpeg so it cannot go serverless, or it must stay with another service because it needs its URL at build time. Omit otherwise."
+              }
+            },
+            "required": ["name", "kind", "path", "stack", "runs", "provider", "why"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["intro", "services"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "proposePlan",
+    "description": "Show the user the deployment plan as a visual card with an approve button on it. Describe each step in plain language: what it does, what it changes, and what it means for them — NOT the commands you will run. The user is approving an outcome, not reading a shell script, so never put a command line in a step. Call this INSTEAD of writing the plan out in your reply, and do not repeat the steps in prose around it. Then STOP and run nothing: the card's button sends the go-ahead, and the user may instead reply asking for changes, in which case revise and call proposePlan again with the whole updated plan.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "One or two plain sentences covering what the whole plan does and where everything ends up."
+        },
+        "steps": {
+          "type": "array",
+          "description": "The steps in the order you will run them, so a service is deployed before anything that needs its URL.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "description": "Short label for the step, e.g. \"Provision the Postgres database\"." },
+              "detail": { "type": "string", "description": "A sentence or two in plain language: what this does and what it changes. No commands." },
+              "service": { "type": "string", "description": "Which service this step belongs to, matching a name from proposeProviders. Omit for project-wide steps." },
+              "impact": {
+                "type": "string",
+                "enum": ["safe", "caution", "destructive"],
+                "description": "Blast radius: \"safe\" = read-only or trivially reversible; \"caution\" = creates or changes state but recoverable; \"destructive\" = data loss, downtime, or hard to undo."
+              }
+            },
+            "required": ["title", "detail", "impact"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["summary", "steps"],
+      "additionalProperties": false
+    }
+  }
+]

@@ -1,0 +1,14 @@
+build/bin
+node_modules
+frontend/dist
+.DS_Store
+.vercel
+.wrangler/
+build/logs/
+scripts/release.sh
+.env*
+
+# Local-only: editor/agent settings and private planning notes.
+.claude/settings.local.json
+.cursor/
+docs/internal/

@@ -1,0 +1,96 @@
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleName</key>
+        <string>{{.Info.ProductName}}</string>
+        <key>CFBundleDisplayName</key>
+        <string>{{.Info.ProductName}}</string>
+        <key>CFBundleExecutable</key>
+        <string>{{.OutputFilename}}</string>
+        <key>CFBundleIdentifier</key>
+        <string>in.getvibeops.app</string>
+        <key>CFBundleVersion</key>
+        <string>{{.Info.ProductVersion}}</string>
+        <key>CFBundleGetInfoString</key>
+        <string>{{.Info.Comments}}</string>
+        <key>CFBundleShortVersionString</key>
+        <string>{{.Info.ProductVersion}}</string>
+        <key>CFBundleIconFile</key>
+        <string>iconfile</string>
+        <key>LSApplicationCategoryType</key>
+        <string>public.app-category.developer-tools</string>
+        <!-- Go 1.25 will not produce a binary that runs below macOS 12. -->
+        <key>LSMinimumSystemVersion</key>
+        <string>12.0</string>
+        <key>NSHumanReadableCopyright</key>
+        <string>{{.Info.Copyright}}</string>
+
+        <!-- Keep in sync with Info.plist: a permission or appearance key that
+             exists in only one of the two is a bug you cannot reproduce in the
+             environment you develop in. -->
+        <key>NSPrincipalClass</key>
+        <string>NSApplication</string>
+        <key>NSHighResolutionCapable</key>
+        <true/>
+        <key>NSRequiresAquaSystemAppearance</key>
+        <false/>
+        <key>NSSupportsAutomaticGraphicsSwitching</key>
+        <true/>
+
+        <key>NSDesktopFolderUsageDescription</key>
+        <string>VibeOps needs access to read and deploy a project you select from your Desktop.</string>
+        <key>NSDocumentsFolderUsageDescription</key>
+        <string>VibeOps needs access to read and deploy a project you select from your Documents folder.</string>
+        <key>NSDownloadsFolderUsageDescription</key>
+        <string>VibeOps needs access to read and deploy a project you select from your Downloads folder.</string>
+        <key>NSLocalNetworkUsageDescription</key>
+        <string>VibeOps needs local network access to reach servers on your network over SSH.</string>
+
+        {{if .Info.FileAssociations}}
+        <key>CFBundleDocumentTypes</key>
+        <array>
+          {{range .Info.FileAssociations}}
+          <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+              <string>{{.Ext}}</string>
+            </array>
+            <key>CFBundleTypeName</key>
+            <string>{{.Name}}</string>
+            <key>CFBundleTypeRole</key>
+            <string>{{.Role}}</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>{{.IconName}}</string>
+          </dict>
+          {{end}}
+        </array>
+        {{end}}
+        {{if .Info.Protocols}}
+        <key>CFBundleURLTypes</key>
+        <array>
+          {{range .Info.Protocols}}
+            <dict>
+                <key>CFBundleURLName</key>
+                <string>in.getvibeops.app.{{.Scheme}}</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>{{.Scheme}}</string>
+                </array>
+                <key>CFBundleTypeRole</key>
+                <string>{{.Role}}</string>
+            </dict>
+          {{end}}
+        </array>
+        {{end}}
+
+        <!-- Dev only: the frontend is served from the Vite dev server on
+             localhost, which ATS blocks by default. -->
+        <key>NSAppTransportSecurity</key>
+        <dict>
+            <key>NSAllowsLocalNetworking</key>
+            <true/>
+        </dict>
+    </dict>
+</plist>

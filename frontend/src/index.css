@@ -1,0 +1,4 @@
+/* The real stylesheet lives in style.css (Tailwind + VibeOps coffee theme +
+   shadcn tokens). index.css is what main.tsx/App.tsx import, so re-export it
+   here to keep a single source of truth. */
+@import "./style.css";

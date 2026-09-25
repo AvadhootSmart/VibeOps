@@ -1,0 +1,15 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "VibeOps",
+  "outputfilename": "VibeOps",
+  "frontend:install": "bun install",
+  "frontend:build": "bun run build",
+  "frontend:dev:watcher": "bun run dev",
+  "frontend:dev:serverUrl": "auto",
+  "info": {
+    "productVersion": "0.6.0",
+    "companyName": "VibeOps",
+    "copyright": "Copyright © 2026 VibeOps contributors",
+    "comments": "AI devops assistant for managing remote servers"
+  }
+}

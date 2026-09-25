@@ -1,0 +1,83 @@
+/* Graphite — the default. Cool machined neutrals, roast kept as the single
+   accent so the brand survives the move off the coffee palette. Geist for UI,
+   Geist Mono for machine output; no serif anywhere. The sidebar colour is the
+   window canvas and --background is the inset pane that sits on it, so the
+   two are deliberately a step apart. */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+:root[data-theme="graphite"] {
+  --radius: 0.75rem;
+  --font-sans: "Geist Variable", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --background: #fafafa;
+  --foreground: #15161a;
+  --card: #ffffff;
+  --card-foreground: #15161a;
+  --popover: #ffffff;
+  --popover-foreground: #15161a;
+  --primary: #15161a;
+  --primary-foreground: #f6f6f5;
+  --secondary: #f0f0f1;
+  --secondary-foreground: #15161a;
+  --muted: #f0f0f1;
+  --muted-foreground: #5d6068;
+  --accent: #e0652e;
+  --accent-foreground: #15161a;
+  --destructive: #c0392b;
+  --border: #e4e4e7;
+  --input: #dcdce0;
+  --ring: #e0652e;
+
+  --chart-1: #e0652e;
+  --chart-2: #3f8c5e;
+  --chart-3: #3f6fa8;
+  --chart-4: #b8780f;
+  --chart-5: #5d6068;
+
+  --sidebar: #ececee;
+  --sidebar-foreground: #15161a;
+  --sidebar-primary: #15161a;
+  --sidebar-primary-foreground: #f6f6f5;
+  --sidebar-accent: #e1e1e4;
+  --sidebar-accent-foreground: #15161a;
+  --sidebar-border: #dcdce0;
+  --sidebar-ring: #e0652e;
+}
+
+:root[data-theme="graphite"].dark {
+  --background: #121316;
+  --foreground: #ececee;
+  --card: #17181c;
+  --card-foreground: #ececee;
+  --popover: #1a1b20;
+  --popover-foreground: #ececee;
+  --primary: #ececee;
+  --primary-foreground: #121316;
+  --secondary: #1e1f24;
+  --secondary-foreground: #ececee;
+  --muted: #1e1f24;
+  --muted-foreground: #9b9da5;
+  --accent: #ee7440;
+  --accent-foreground: #15161a;
+  --destructive: #e15b4c;
+  --border: #26282d;
+  --input: #2e3036;
+  --ring: #ee7440;
+
+  --chart-1: #ee7440;
+  --chart-2: #56a878;
+  --chart-3: #5e8cc4;
+  --chart-4: #d19b3a;
+  --chart-5: #9b9da5;
+
+  --sidebar: #0b0c0e;
+  --sidebar-foreground: #ececee;
+  --sidebar-primary: #ececee;
+  --sidebar-primary-foreground: #121316;
+  --sidebar-accent: #1a1b1f;
+  --sidebar-accent-foreground: #ececee;
+  --sidebar-border: #1f2025;
+  --sidebar-ring: #ee7440;
+}

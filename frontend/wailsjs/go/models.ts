@@ -79,7 +79,8 @@ export namespace overview {
 	    kind: string;
 	    domain: string;
 	    status: string;
-	    uptime: string;
+	    since: string;
+	    certExpires: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new App(source);
@@ -92,13 +93,34 @@ export namespace overview {
 	        this.kind = source["kind"];
 	        this.domain = source["domain"];
 	        this.status = source["status"];
-	        this.uptime = source["uptime"];
+	        this.since = source["since"];
+	        this.certExpires = source["certExpires"];
+	    }
+	}
+	export class Host {
+	    name: string;
+	    os: string;
+	    bootedAt: string;
+	    diskUsedPct: number;
+	    diskSize: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Host(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.os = source["os"];
+	        this.bootedAt = source["bootedAt"];
+	        this.diskUsedPct = source["diskUsedPct"];
+	        this.diskSize = source["diskSize"];
 	    }
 	}
 	export class Data {
-	    server: string;
 	    summary: string;
 	    insight: string;
+	    hosts: Host[];
 	    apps: App[];
 	    updatedAt: number;
 	
@@ -108,9 +130,9 @@ export namespace overview {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.server = source["server"];
 	        this.summary = source["summary"];
 	        this.insight = source["insight"];
+	        this.hosts = this.convertValues(source["hosts"], Host);
 	        this.apps = this.convertValues(source["apps"], App);
 	        this.updatedAt = source["updatedAt"];
 	    }

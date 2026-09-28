@@ -38,4 +38,3 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 )
-

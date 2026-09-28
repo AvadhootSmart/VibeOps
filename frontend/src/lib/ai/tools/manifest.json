@@ -173,21 +173,48 @@
   },
   {
     "name": "generateOverview",
-    "description": "Store a fresh overview of the user's apps for the Overview screen. Gather from two kinds of source, then call this ONCE with the combined list:\n1. The SSH server: sshConnect and snapshot what's running (`systemctl list-units --type=service --state=running`, `docker ps`, uptime). For each service's domain, inspect the reverse proxy to map it to a public hostname: nginx (`/etc/nginx/sites-enabled/`, `server_name`), Caddy (`/etc/caddy/Caddyfile`), Traefik labels, or Apache vhosts.\n2. Connectors: if the Vercel CLI is authed (`vercel whoami`), run `vercel project ls` — one row per project with its Latest Production URL (the real domain). Set name = project, domain = that URL, uptime = \"—\". Use `vercel ls` only to read each project's latest deployment status (Ready→running, Building→deploying, Error→failed). IGNORE Cloudflare for now — do not include Workers.\nIf no server is connected AND no connector apps exist, call with server=\"\" and empty apps to show the connect CTA. Do NOT invent CPU/memory numbers; they are shown as placeholders for now.",
+    "description": "Store a fresh overview of the user's apps for the Overview screen. It is a one-off snapshot, not a live monitor, so record only facts that stay true until the next refresh. Gather from two kinds of source, then call this ONCE with the combined list:\n1. Each SSH server: sshConnect, then in as few commands as possible read the host (`. /etc/os-release; echo $PRETTY_NAME`, `uptime -s`, `df -h /`) and what's running (`systemctl list-units --type=service --state=running`, `docker ps`). For each service's start time use `docker inspect -f '{{.State.StartedAt}}'` or `systemctl show -p ActiveEnterTimestamp`. Map each service to its public hostname from the reverse proxy: nginx (`/etc/nginx/sites-enabled/`, `server_name`), Caddy (`/etc/caddy/Caddyfile`), Traefik labels, or Apache vhosts. For each public domain read the TLS expiry: `echo | openssl s_client -servername D -connect D:443 2>/dev/null | openssl x509 -noout -enddate`.\n2. Connectors: if the Vercel CLI is authed (`vercel whoami`), run `vercel project ls` \u2014 one row per project with its Latest Production URL (the real domain). Use `vercel ls <project> --prod` to read the latest production deployment's status (Ready\u2192running, Building\u2192deploying, Error\u2192failed) and when it was created (since). Vercel manages certificates: leave certExpires empty. IGNORE Cloudflare for now \u2014 do not include Workers.\nSkip boring system units (ssh, cron, systemd-*, getty, snapd, etc.) \u2014 list the user's apps and the infrastructure they rely on (databases, proxies, queues). Do NOT invent values: use \"\" when something could not be read. Do NOT record CPU, memory or traffic.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "server": {
-          "type": "string",
-          "description": "The host snapshotted, e.g. \"root@1.2.3.4\". Empty string if no server is connected."
-        },
         "summary": {
           "type": "string",
-          "description": "One-line header, e.g. \"6 services running · all healthy\"."
+          "description": "One-line header, e.g. \"6 services running \u00b7 all healthy\"."
         },
         "insight": {
           "type": "string",
           "description": "A short plain-language \"VibeOps noticed\" note about the apps, or \"\"."
+        },
+        "hosts": {
+          "type": "array",
+          "description": "One entry per SSH server snapshotted. Empty if none.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The server name, exactly as used for its apps' provider."
+              },
+              "os": {
+                "type": "string",
+                "description": "e.g. \"Ubuntu 24.04 LTS\"."
+              },
+              "bootedAt": {
+                "type": "string",
+                "description": "When the host booted, RFC 3339 with offset (from `uptime -s`), or \"\"."
+              },
+              "diskUsedPct": {
+                "type": "integer",
+                "description": "Root filesystem used, 0\u2013100 (from `df -h /`)."
+              },
+              "diskSize": {
+                "type": "string",
+                "description": "Root filesystem size, e.g. \"80G\"."
+              }
+            },
+            "required": ["name", "os", "bootedAt", "diskUsedPct", "diskSize"],
+            "additionalProperties": false
+          }
         },
         "apps": {
           "type": "array",
@@ -210,30 +237,27 @@
               },
               "domain": {
                 "type": "string",
-                "description": "The public domain serving this app if it has one, e.g. \"api.you.dev\" (from the reverse proxy config, or the Vercel deployment URL). Only use \"internal · <port>\" (e.g. \"internal · 5432\") when the service is genuinely not exposed on any domain."
+                "description": "The public domain serving this app if it has one, e.g. \"api.you.dev\" (from the reverse proxy config, or the Vercel deployment URL). Only use \"internal \u00b7 <port>\" (e.g. \"internal \u00b7 5432\") when the service is genuinely not exposed on any domain."
               },
               "status": {
                 "type": "string",
                 "enum": ["running", "deploying", "failed"]
               },
-              "uptime": {
+              "since": {
                 "type": "string",
-                "description": "Uptime, e.g. \"12d\", or \"—\" if unknown (connector apps: \"—\")."
+                "description": "RFC 3339 with offset: when the service started (server) or its latest production deploy was created (connector). \"\" if unknown."
+              },
+              "certExpires": {
+                "type": "string",
+                "description": "RFC 3339 TLS certificate expiry for the public domain. \"\" for internal services, platform-managed certs (Vercel), or if it could not be read."
               }
             },
-            "required": [
-              "name",
-              "provider",
-              "kind",
-              "domain",
-              "status",
-              "uptime"
-            ],
+            "required": ["name", "provider", "kind", "domain", "status", "since", "certExpires"],
             "additionalProperties": false
           }
         }
       },
-      "required": ["server", "summary", "insight", "apps"],
+      "required": ["summary", "insight", "hosts", "apps"],
       "additionalProperties": false
     }
   },

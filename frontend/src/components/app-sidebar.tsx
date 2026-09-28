@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   NavLink,
   useLocation,
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import { Command, Plus, Trash2 } from "lucide-react";
+import { Command, Plus, Rocket, Trash2 } from "lucide-react";
 import { ROUTES, type RouteItem } from "@/routes";
 import { Delete, List } from "@wails/go/sessions/Sessions";
 import { useChatStore } from "@/lib/stores/chat";
 import { ConfirmDialog } from "@/components/custom/confirm-dialog";
+import { DeploymentDialog } from "@/components/custom/deployment-dialog";
 import { VersionChip } from "@/components/custom/version-chip";
 import { SidebarBrand } from "@/components/custom/sidebar/brand";
 import { isMac, shortcutKey } from "@/hooks/use-shortcuts";
@@ -80,6 +81,7 @@ export function AppSidebar() {
   // The chat pending deletion (drives the confirm dialog), or null.
   const [pendingDelete, setPendingDelete] =
     useState<sessions.SessionMeta | null>(null);
+  const [deployOpen, setDeployOpen] = useState(false);
 
   useEffect(() => {
     const load = () =>
@@ -109,7 +111,21 @@ export function AppSidebar() {
         <SidebarGroup className="py-2">
           <SidebarMenu>
             {mainItems.map((item) => (
-              <NavItem key={item.path} item={item} />
+              <Fragment key={item.path}>
+                <NavItem item={item} />
+                {item.path === "/overview" && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className={ITEM}
+                      tooltip="Deploy"
+                      onClick={() => setDeployOpen(true)}
+                    >
+                      <Rocket />
+                      <span>Deploy</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </Fragment>
             ))}
           </SidebarMenu>
         </SidebarGroup>
@@ -172,6 +188,7 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
 
+      <DeploymentDialog open={deployOpen} onOpenChange={setDeployOpen} />
       <ConfirmDialog
         open={pendingDelete !== null}
         onOpenChange={(open) => !open && setPendingDelete(null)}

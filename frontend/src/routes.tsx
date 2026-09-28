@@ -1,12 +1,10 @@
 import { lazy, type ReactNode } from "react";
 import {
   LayoutGrid,
-  ScrollText,
   Sparkles,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
-import PagePlaceholder from "@/pages/placeholder";
 
 // Split per route. Overview is the landing page and needs none of the chat
 // stack — Streamdown, shiki, motion, the markdown pipeline — which is most of
@@ -33,19 +31,6 @@ export const ROUTES: RouteItem[] = [
     title: "Overview",
     icon: LayoutGrid,
     element: <Overview />,
-    section: "main",
-  },
-  {
-    path: "/logs",
-    title: "Logs",
-    icon: ScrollText,
-    element: (
-      <PagePlaceholder
-        icon={ScrollText}
-        title="Logs"
-        description="Logs grouped by cause, with a plain-language summary of what's actually going on."
-      />
-    ),
     section: "main",
   },
   {

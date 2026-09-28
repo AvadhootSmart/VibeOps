@@ -19,24 +19,35 @@ import (
 )
 
 // App is one service the agent found — either running on the SSH server or
-// pulled from a connector (e.g. Vercel). CPU/memory are intentionally absent;
-// the screen shows them as placeholders for now.
+// pulled from a connector (e.g. Vercel). Only facts that stay true between
+// snapshots: times are absolute so the screen can age them itself, and there is
+// no CPU/memory because a one-off reading of those is stale by the next glance.
 type App struct {
-	Name     string `json:"name"`     // service/app name, e.g. "postgres"
-	Provider string `json:"provider"` // where it came from: the server name, or a connector name like "vercel"
-	Kind     string `json:"kind"`     // what it is: "API" | "frontend" | "App"
-	Domain   string `json:"domain"`   // public domain if exposed, else "internal · <port>"
-	Status   string `json:"status"`   // running | deploying | failed
-	Uptime   string `json:"uptime"`   // e.g. "12d" or "—" if unknown
+	Name        string `json:"name"`        // service/app name, e.g. "postgres"
+	Provider    string `json:"provider"`    // where it came from: the server name, or a connector name like "vercel"
+	Kind        string `json:"kind"`        // what it is: "API" | "frontend" | "App"
+	Domain      string `json:"domain"`      // public domain if exposed, else "internal · <port>"
+	Status      string `json:"status"`      // running | deploying | failed
+	Since       string `json:"since"`       // RFC 3339: when it started (server) or last deployed (connector), "" if unknown
+	CertExpires string `json:"certExpires"` // RFC 3339 TLS expiry of Domain, "" if not checked or platform-managed
 }
 
-// Data is the whole overview. Empty Server means no server is connected, which
-// the screen renders as the CTA empty state.
+// Host is one SSH server the snapshot read.
+type Host struct {
+	Name        string `json:"name"`        // matches App.Provider
+	OS          string `json:"os"`          // e.g. "Ubuntu 24.04"
+	BootedAt    string `json:"bootedAt"`    // RFC 3339, "" if unknown
+	DiskUsedPct int    `json:"diskUsedPct"` // root filesystem, 0–100
+	DiskSize    string `json:"diskSize"`    // e.g. "80G"
+}
+
+// Data is the whole overview. A zero UpdatedAt means nothing was ever
+// snapshotted, which the screen renders as the empty state.
 type Data struct {
-	Server    string `json:"server"`    // host the snapshot came from, "" if none connected
 	Summary   string `json:"summary"`   // one-line header, e.g. "6 services running · all healthy"
 	Insight   string `json:"insight"`   // the "VibeOps noticed" note, plain text
-	Apps      []App  `json:"apps"`      // services running on the server
+	Hosts     []Host `json:"hosts"`     // SSH servers snapshotted
+	Apps      []App  `json:"apps"`      // services on those servers plus connector apps
 	UpdatedAt int64  `json:"updatedAt"` // unix seconds, stamped on write
 }
 
@@ -60,7 +71,7 @@ func overviewPath() string {
 }
 
 // Get returns the stored overview; a missing file yields the zero value (which
-// the screen shows as the empty CTA state).
+// the screen shows as the empty state).
 func (o *Overview) Get() (Data, error) {
 	return jsonstore.Read[Data](overviewPath())
 }

@@ -7,6 +7,7 @@ import { RefreshControl } from "@/components/custom/overview/refresh-control";
 import { EmptyState } from "@/components/custom/overview/empty-state";
 import { KpiRow } from "@/components/custom/overview/kpi-row";
 import { AppsTable } from "@/components/custom/overview/apps-table";
+import { Hosts } from "@/components/custom/overview/hosts";
 import { DeploymentDialog } from "@/components/custom/deployment-dialog";
 import { runAgent } from "@/lib/ai";
 import { useGenerationStore, useIsGenerating } from "@/lib/stores/generation";
@@ -30,7 +31,7 @@ function overviewPrompt(servers: settings.Server[], scope: string) {
     ),
     ...(scope === "all" || scope === "vercel"
       ? [
-          `If the Vercel CLI is authed (\`vercel whoami\`), run \`vercel project ls\` and include those apps with provider "vercel" (name = project, domain = Latest Production URL, uptime = "—"). Use \`vercel ls\` only to read each project's latest deployment status.`,
+          `If the Vercel CLI is authed (\`vercel whoami\`), run \`vercel project ls\` and include those apps with provider "vercel" (name = project, domain = Latest Production URL, certExpires = ""). Use \`vercel ls <project> --prod\` for each project's latest production deployment: its status and when it was created (since).`,
         ]
       : []),
   ];
@@ -48,6 +49,7 @@ export default function Overview() {
   const [deployOpen, setDeployOpen] = useState(false);
   const [scope, setScope] = useState("all");
   const generating = useIsGenerating("overview");
+  const error = useGenerationStore((s) => s.runs.overview?.error);
 
   useEffect(() => {
     Get().then(setData);
@@ -78,12 +80,14 @@ export default function Overview() {
 
   if (data === null) return <OverviewSkeleton />;
 
-  if (!data.server) {
+  if (!data.updatedAt) {
     return (
       <EmptyState
         generating={generating}
+        error={error}
         servers={servers}
         onGenerate={generate}
+        onStop={() => useGenerationStore.getState().stop("overview")}
       />
     );
   }
@@ -112,7 +116,13 @@ export default function Overview() {
       />
       <DeploymentDialog open={deployOpen} onOpenChange={setDeployOpen} />
 
-      <KpiRow apps={data.apps ?? []} />
+      {error && !generating && (
+        <p className="-mt-6 mb-6 text-meta text-err">
+          The last refresh failed: {error}
+        </p>
+      )}
+
+      <KpiRow data={data} />
 
       {/* The agent's read on the snapshot. A thin accent rule and mark rather
           than a tinted alert box: this is VibeOps talking, not a warning. */}
@@ -134,6 +144,13 @@ export default function Overview() {
         <h2 className="mb-4 text-section">Applications</h2>
         <AppsTable apps={data.apps ?? []} />
       </section>
+
+      {!!data.hosts?.length && (
+        <section className="mt-12">
+          <h2 className="mb-4 text-section">Servers</h2>
+          <Hosts hosts={data.hosts} />
+        </section>
+      )}
     </Page>
   );
 }
@@ -144,9 +161,9 @@ function OverviewSkeleton() {
   return (
     <Page>
       <PageHeader title="Overview" description="Reading the last snapshot…" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Skeleton className="h-[116px] rounded-2xl sm:col-span-3 lg:col-span-2" />
-        {[0, 1, 2].map((i) => (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-[116px] rounded-2xl sm:col-span-2" />
+        {[0, 1].map((i) => (
           <Skeleton key={i} className="h-[116px] rounded-2xl" />
         ))}
       </div>

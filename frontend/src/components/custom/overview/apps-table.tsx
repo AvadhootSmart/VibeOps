@@ -4,22 +4,60 @@ import {
   type AppStatus,
 } from "@/components/custom/overview/status-badge";
 import { Panel, RowIcon } from "@/components/custom/panel";
+import {
+  age,
+  certExpiring,
+  daysUntil,
+} from "@/components/custom/overview/derive";
 import { BrowserOpenURL } from "@wails/runtime/runtime";
 import type { overview } from "@wails/go/models";
 
-const COLUMNS = "grid-cols-[minmax(0,1.7fr)_0.9fr_0.6fr_0.7fr_0.6fr_32px]";
-// Figures right-align so the column reads as a column; labels left-align.
-const NUM = "text-right text-sm tabular-nums";
+const COLUMNS =
+  "grid-cols-[minmax(0,1.5fr)_0.8fr_minmax(0,1.4fr)_0.5fr]";
+
+function Domain({ app }: { app: overview.App }) {
+  if (!app.domain) return <span className="text-muted-foreground">—</span>;
+  if (app.domain.startsWith("internal")) {
+    return (
+      <span className="truncate font-mono text-meta text-muted-foreground">
+        {app.domain}
+      </span>
+    );
+  }
+
+  const host = app.domain.replace(/^https?:\/\//, "");
+  const days = daysUntil(app.certExpires);
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <button
+        title={
+          days === null
+            ? `Open ${host}`
+            : `Certificate valid until ${new Date(app.certExpires).toLocaleDateString()}`
+        }
+        onClick={() => BrowserOpenURL(`https://${host}`)}
+        className="group/link inline-flex min-w-0 cursor-pointer items-center gap-1 text-sm transition-colors hover:text-accent"
+      >
+        <span className="truncate">{host}</span>
+        <ArrowUpRight className="size-3.5 shrink-0 opacity-0 transition-opacity group-hover/link:opacity-100" />
+      </button>
+      {/* Certificates only speak up when they're about to be a problem. */}
+      {certExpiring(app) && (
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-meta font-medium ${days! <= 0 ? "bg-err-soft text-err" : "bg-warn-soft text-warn"}`}
+        >
+          {days! <= 0 ? "cert expired" : `cert ${days}d`}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function AppRow({ app }: { app: overview.App }) {
   const external = !!app.domain && !app.domain.startsWith("internal");
-  const url = app.domain.startsWith("http")
-    ? app.domain
-    : `https://${app.domain}`;
-
   return (
     <div
-      className={`group grid ${COLUMNS} items-center gap-4 border-t border-border/70 px-5 py-3.5 transition-colors duration-300 hover:bg-secondary/50`}
+      className={`grid ${COLUMNS} items-center gap-4 border-t border-border/70 px-5 py-3.5 transition-colors duration-300 hover:bg-secondary/50`}
     >
       <div className="flex min-w-0 items-center gap-3">
         <RowIcon className="size-8">
@@ -37,24 +75,13 @@ function AppRow({ app }: { app: overview.App }) {
         </div>
       </div>
       <StatusBadge status={app.status as AppStatus} />
-      {/* CPU / Memory are placeholders for now */}
-      <div className={`${NUM} text-muted-foreground`}>—</div>
-      <div className={`${NUM} text-muted-foreground`}>—</div>
-      <div className={NUM}>{app.uptime}</div>
-      {/* The only action a row has. Revealed on hover so a quiet table stays
-          quiet, but always reachable by keyboard. */}
-      {external ? (
-        <button
-          title={`Open ${app.domain}`}
-          aria-label={`Open ${app.domain}`}
-          onClick={() => BrowserOpenURL(url)}
-          className="grid size-8 cursor-pointer place-items-center rounded-full text-muted-foreground opacity-0 transition-[opacity,color,background-color,transform] duration-300 ease-(--ease-spring) hover:-translate-y-px hover:bg-secondary hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <ArrowUpRight className="size-4" />
-        </button>
-      ) : (
-        <span />
-      )}
+      <Domain app={app} />
+      <div
+        className="text-right text-sm tabular-nums"
+        title={app.since && new Date(app.since).toLocaleString()}
+      >
+        {age(app.since) || <span className="text-muted-foreground">—</span>}
+      </div>
     </div>
   );
 }
@@ -67,10 +94,9 @@ export function AppsTable({ apps }: { apps: overview.App[] }) {
       >
         <span>Application</span>
         <span>Status</span>
-        <span className="text-right">CPU</span>
-        <span className="text-right">Memory</span>
-        <span className="text-right">Uptime</span>
-        <span />
+        <span>Domain</span>
+        {/* Since start on a server, since the last deploy on a platform. */}
+        <span className="text-right">Live for</span>
       </div>
       {apps.length === 0 ? (
         <p className="border-t border-border/70 px-5 py-10 text-center text-meta text-muted-foreground">

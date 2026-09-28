@@ -1,30 +1,23 @@
 import type { overview } from "@wails/go/models";
 import { Panel } from "@/components/custom/panel";
+import { age, needsAttention } from "@/components/custom/overview/derive";
 import { cn } from "@/lib/utils";
-
-// CPU / Memory / Requests are placeholders until real metrics land — they're
-// shown static regardless of the snapshot. Only "Apps running" is derived.
-const PLACEHOLDERS = [
-  { label: "Avg CPU", value: "—", unit: "%" },
-  { label: "Memory", value: "—", unit: "/ 8 GB" },
-  { label: "Requests / min", value: "—", unit: "" },
-];
 
 function Kpi({
   label,
   value,
   unit,
   lead,
+  warn,
 }: {
   label: string;
   value: string | number;
   unit?: string;
-  // The one real figure gets the wider tile and the accent wash; the
-  // placeholders beside it stay quiet until they carry data too.
   lead?: boolean;
+  warn?: boolean;
 }) {
   return (
-    <div className={lead ? "sm:col-span-3 lg:col-span-2" : undefined}>
+    <div className={lead ? "sm:col-span-2" : undefined}>
       <Panel
         className={cn(
           "flex h-full flex-col justify-between px-5 py-4",
@@ -37,7 +30,11 @@ function Kpi({
             floating beside it. */}
         <div className="mt-6 flex items-baseline gap-1.5">
           <span
-            className={cn("text-metric tabular-nums", lead && "text-[2.75rem]")}
+            className={cn(
+              "text-metric tabular-nums",
+              lead && "text-[2.75rem]",
+              warn && "text-warn",
+            )}
           >
             {value}
           </span>
@@ -52,18 +49,21 @@ function Kpi({
   );
 }
 
-export function KpiRow({ apps }: { apps: overview.App[] }) {
+// Only figures a one-off snapshot can state truthfully. CPU, memory and traffic
+// are left out on purpose: without polling they'd be stale by the next glance.
+export function KpiRow({ data }: { data: overview.Data }) {
+  const apps = data.apps ?? [];
+  const attention = needsAttention(data);
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Kpi
         lead
         label="Apps running"
         value={apps.filter((a) => a.status === "running").length}
         unit={`/ ${apps.length}`}
       />
-      {PLACEHOLDERS.map((k) => (
-        <Kpi key={k.label} {...k} />
-      ))}
+      <Kpi label="Needs attention" value={attention} warn={attention > 0} />
+      <Kpi label="Last snapshot" value={age(data.updatedAt)} unit="ago" />
     </div>
   );
 }

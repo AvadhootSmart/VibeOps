@@ -16,6 +16,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"VibeOps/backend/ask"
+	"VibeOps/backend/errlog"
 	"VibeOps/backend/overview"
 	"VibeOps/backend/settings"
 	"VibeOps/backend/shell"
@@ -58,6 +59,22 @@ func (a *App) shutdown(ctx context.Context) {
 //go:embed wails.json
 var wailsConfig []byte
 
+func productVersion() string {
+	var cfg struct {
+		Info struct {
+			ProductVersion string `json:"productVersion"`
+		} `json:"info"`
+	}
+	json.Unmarshal(wailsConfig, &cfg)
+	return cfg.Info.ProductVersion
+}
+
+// LogError records an error the webview hit — a failed provider, connector or
+// agent turn — in error.log.
+func (a *App) LogError(source, message string) { errlog.Write(source, message) }
+
+func (a *App) ShowErrorLog() error { return errlog.Reveal() }
+
 type VersionInfo struct {
 	Current string `json:"current"`
 	Latest  string `json:"latest"`
@@ -68,13 +85,7 @@ type VersionInfo struct {
 // headers, so the same request from the webview would be blocked. A failed
 // check leaves Latest empty — no update banner, no error to the user.
 func (a *App) Version() VersionInfo {
-	var cfg struct {
-		Info struct {
-			ProductVersion string `json:"productVersion"`
-		} `json:"info"`
-	}
-	json.Unmarshal(wailsConfig, &cfg)
-	v := VersionInfo{Current: cfg.Info.ProductVersion}
+	v := VersionInfo{Current: productVersion()}
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get("https://getvibeops.in/manifest")

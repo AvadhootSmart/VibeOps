@@ -5,12 +5,20 @@ import {
   RequestNotificationAuthorization,
   SendNotification,
 } from "@wails/runtime/runtime";
+import { LogError } from "@wails/go/main/App";
 
 // Single place errors reach the user. Wails rejects bindings with plain strings
 // (the Go error text), while the AI layer throws Errors — normalize both so
 // call sites can just hand over whatever they caught.
 export function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+// Every error shown to the user also lands in error.log, which they can send us.
+// The stack says more than the message there, since nobody reads it in a toast.
+export function logError(source: string, title: string, e: unknown) {
+  const detail = e instanceof Error ? (e.stack ?? e.message) : String(e);
+  LogError(source, `${title}: ${detail}`).catch(() => {});
 }
 
 // `fixable` opts a toast into the "Fix it" action, which hands the error to the
@@ -20,12 +28,13 @@ export function errorMessage(e: unknown): string {
 export function notifyError(
   title: string,
   e?: unknown,
-  { fixable = false } = {},
+  { fixable = false, source = "app" } = {},
 ) {
   if (e === undefined) {
     toast.error(title);
     return;
   }
+  logError(source, title, e);
   const description = errorMessage(e);
   toast.error(title, {
     description,

@@ -8,6 +8,7 @@ import { Providers } from "@/components/custom/settings/providers";
 import { Servers } from "@/components/custom/settings/servers";
 import { Connectors } from "@/components/custom/settings/connectors";
 import { Toggle } from "@/components/custom/settings/toggle";
+import { ErrorLog } from "@/components/custom/settings/error-log";
 
 export default function Settings() {
   const [showToolCalls, setShowToolCalls] = useState(true);
@@ -53,6 +54,8 @@ export default function Settings() {
       >
         <Connectors />
       </Section>
+
+      <ErrorLog />
     </Page>
   );
 }

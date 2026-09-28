@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Models } from "@wails/go/tools/Harness";
-import { notifyError } from "@/lib/notify";
+import { logError, notifyError } from "@/lib/notify";
 import { getConfig, setAgentModel, type Harness } from "@/lib/config";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export function HarnessProvider({
         setInstalled(s.installed);
         setVersion(s.version);
       })
-      .catch(() => {});
+      .catch((e) => logError("provider", `Failed to detect ${id}`, e));
     getConfig()
       .then((c) => setModel(c.agentModels[id] ?? ""))
       .catch(() => {});
@@ -73,7 +73,10 @@ export function HarnessProvider({
   useEffect(() => {
     if (!expanded || !installed) return;
     if (models) setOptions(models(version));
-    else Models(id).then(setOptions).catch(() => {});
+    else
+      Models(id)
+        .then(setOptions)
+        .catch((e) => logError("provider", `Failed to list ${id} models`, e));
   }, [expanded, installed, version, id, models]);
 
   async function selectModel(value: string) {
@@ -82,7 +85,7 @@ export function HarnessProvider({
     try {
       await setAgentModel(id, value);
     } catch (e) {
-      notifyError("Failed to set model", e);
+      notifyError("Failed to set model", e, { source: "provider" });
     }
   }
 

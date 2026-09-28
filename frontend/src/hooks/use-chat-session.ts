@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ModelMessage } from "ai";
 import { runAgent, MissingApiKeyError } from "@/lib/ai";
-import { notifyError, notifyIfAway } from "@/lib/notify";
+import { logError, notifyError, notifyIfAway } from "@/lib/notify";
 import { getConfig } from "@/lib/config";
 import { coalesce } from "@/lib/utils";
 import { useGenerationStore, useIsGenerating } from "@/lib/stores/generation";
@@ -162,13 +162,20 @@ export function useChatSession() {
         harnessSessionOf(prior),
       );
       stream.flush(result);
+      for (const step of result.steps) {
+        if (step.state === "output-error") {
+          logError(`tool (${provider})`, step.toolName, step.errorText);
+        }
+      }
       await save(id, name, [...prior, { ...pending, result }]);
       notifyIfAway("Agent finished", name);
     } catch (e) {
       if (e instanceof MissingApiKeyError) {
         notifyError("No API key set", "Add one in Settings first.");
       } else {
-        notifyError("The assistant hit an error", e);
+        notifyError("The assistant hit an error", e, {
+          source: `agent (${provider})`,
+        });
         notifyIfAway("The assistant hit an error", name);
       }
       // Keep whatever streamed before the failure on disk too, so reopening the

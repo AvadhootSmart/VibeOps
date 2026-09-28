@@ -34,6 +34,8 @@ The sudo/secrets rules the model is given live once, in `frontend/src/lib/ai/pol
 
 **Every command is approved in Go.** `ShellAccess` and `RunRemote` call `approve` (`backend/tools/approval.go`) before running anything: it raises the ask dialog — directly in the app, over the loopback ask listener from the MCP child — and returns the user's refusal to the model as an error. "Run everything this turn" and a plan card's go-ahead (`ApproveNextTurn`) skip the prompt until the turn ends. The harness CLIs' own shell and write tools are switched off in `harness.go`, so they can't route around it.
 
+**Errors are logged.** `notifyError` (`lib/notify.ts`) also appends to `error.log` through `backend/errlog`, which redacts secrets first; pass `{ source }` to tag the entry. Use `logError` for failures that shouldn't raise a toast. Go-side failures call `errlog.Write` directly.
+
 **Settings vs tools.** `backend/settings/settings.go` is deliberately separate from tools: it's privileged local config (OpenRouter API key, model choice) stored in the **OS keychain** via go-keyring, not exposed to the model. The API key and model are read at request time in `frontend/src/lib/ai/provider.ts` through the `Settings` binding; a missing key throws `MissingApiKeyError`.
 
 **Frontend structure.** `@/` aliases `frontend/src/`. Routing is in `routes.tsx` with pages under `src/pages/` (e.g. `assistant.tsx` drives the agent, `settings.tsx` manages the key). shadcn/ui primitives live in `src/components/ui/`; Vercel AI Elements chat components in `src/components/ai-elements/`. The public surface of the AI layer is re-exported from `src/lib/ai/index.ts` — import from `@/lib/ai`, not deep paths.

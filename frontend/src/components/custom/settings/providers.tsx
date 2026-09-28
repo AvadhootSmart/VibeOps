@@ -38,7 +38,7 @@ export function Providers() {
     try {
       await patchConfig({ provider: p });
     } catch (e) {
-      notifyError("Failed to switch provider", e);
+      notifyError("Failed to switch provider", e, { source: "provider" });
     }
   }
 

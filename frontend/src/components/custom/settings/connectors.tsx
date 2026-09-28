@@ -41,7 +41,10 @@ export function Connectors() {
     try {
       setConnectors(await CheckAll());
     } catch (e) {
-      notifyError("Failed to check connectors", e, { fixable: true });
+      notifyError("Failed to check connectors", e, {
+        fixable: true,
+        source: "connector",
+      });
     } finally {
       setLoading(false);
     }
@@ -58,7 +61,10 @@ export function Connectors() {
         await checkAll();
       }
     } catch (e) {
-      notifyError(`Failed to ${step} ${name}`, e, { fixable: true });
+      notifyError(`Failed to ${step} ${name}`, e, {
+        fixable: true,
+        source: "connector",
+      });
     } finally {
       setBusy(null);
     }

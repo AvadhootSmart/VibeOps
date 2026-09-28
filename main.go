@@ -10,6 +10,7 @@ import (
 
 	"VibeOps/backend/ask"
 	"VibeOps/backend/connectors"
+	"VibeOps/backend/errlog"
 	"VibeOps/backend/mcp"
 	"VibeOps/backend/overview"
 	"VibeOps/backend/sessions"
@@ -114,11 +115,14 @@ func main() {
 	// Before the MCP branch: that child runs ShellAccess too, and inherits this.
 	escapeSystemCwd()
 
+	errlog.Build = productVersion()
+
 	// Headless MCP mode: each harness CLI spawns this same binary as
 	// `vibeops mcp` to expose VibeOps tools over stdio. Short-circuit before any
 	// GUI init.
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
 		if err := mcp.Serve(); err != nil {
+			errlog.Write("mcp", err.Error())
 			os.Exit(1)
 		}
 		return
@@ -127,7 +131,7 @@ func main() {
 	// Before the services: the harness reads the address when it launches a CLI.
 	// A failure here costs askQuestion and nothing else.
 	if err := ask.Serve(); err != nil {
-		println("ask listener unavailable:", err.Error())
+		errlog.Write("ask", "listener unavailable: "+err.Error())
 	}
 
 	app := NewApp()
@@ -191,6 +195,6 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		errlog.Write("app", err.Error())
 	}
 }

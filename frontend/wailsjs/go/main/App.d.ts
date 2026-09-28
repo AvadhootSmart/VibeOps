@@ -10,9 +10,13 @@ export function ChooseKeyFile():Promise<string>;
 
 export function CloneRepo(arg1:string):Promise<string>;
 
+export function LogError(arg1:string,arg2:string):Promise<void>;
+
 export function Restart():Promise<void>;
 
 export function ShellPath(arg1:string):Promise<string>;
+
+export function ShowErrorLog():Promise<void>;
 
 export function Update():Promise<void>;
 

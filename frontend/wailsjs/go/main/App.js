@@ -18,12 +18,20 @@ export function CloneRepo(arg1) {
   return window['go']['main']['App']['CloneRepo'](arg1);
 }
 
+export function LogError(arg1, arg2) {
+  return window['go']['main']['App']['LogError'](arg1, arg2);
+}
+
 export function Restart() {
   return window['go']['main']['App']['Restart']();
 }
 
 export function ShellPath(arg1) {
   return window['go']['main']['App']['ShellPath'](arg1);
+}
+
+export function ShowErrorLog() {
+  return window['go']['main']['App']['ShowErrorLog']();
 }
 
 export function Update() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { notifyError, notifySuccess } from "@/lib/notify";
+import { logError, notifyError, notifySuccess } from "@/lib/notify";
 import { ChevronsUpDown, Eye, EyeOff } from "lucide-react";
 import {
   GetAPIKey,
@@ -47,7 +47,8 @@ const openRouterModels = () =>
       return r.json();
     })
     .then((d) => d.data ?? [])
-    .catch(() => {
+    .catch((e) => {
+      logError("provider", "Failed to load OpenRouter models", e);
       catalogue = null; // a failed fetch shouldn't be cached as "no models"
       return [];
     }));
@@ -89,7 +90,7 @@ export function OpenRouterProvider({
           setSaved(true);
         }
       } catch (e) {
-        notifyError("Failed to load key", e);
+        notifyError("Failed to load key", e, { source: "provider" });
       }
     })();
   }, []);
@@ -100,7 +101,7 @@ export function OpenRouterProvider({
         const { model } = await getConfig();
         if (model) setModel(model);
       } catch (e) {
-        notifyError("Failed to load model", e);
+        notifyError("Failed to load model", e, { source: "provider" });
       }
     })();
   }, []);
@@ -117,7 +118,7 @@ export function OpenRouterProvider({
       setSaved(true);
       notifySuccess("Saved");
     } catch (e) {
-      notifyError("Save failed", e);
+      notifyError("Save failed", e, { source: "provider" });
     } finally {
       setIsBusy(false);
     }
@@ -133,7 +134,7 @@ export function OpenRouterProvider({
       setSaved(false);
       notifySuccess("Removed from keychain.");
     } catch (e) {
-      notifyError("Remove failed", e);
+      notifyError("Remove failed", e, { source: "provider" });
     } finally {
       setIsBusy(false);
     }

@@ -58,12 +58,24 @@ export function providerLogo(provider: string): string | undefined {
 
 // Models the `claude` CLI accepts, with the CLI version each needs — the picker
 // hides one the installed CLI is too old for, which would otherwise fail only
-// once a turn was already running.
+// once a turn was already running. A min of 2.1.281 is the oldest CLI checked,
+// not necessarily the first to ship the model.
 export const CLAUDE_MODELS = [
+  { id: "claude-fable-5-1", name: "Fable 5.1", min: "2.1.281" },
+  { id: "claude-fable-5", name: "Fable 5", min: "2.1.281" },
+  { id: "claude-opus-5-5", name: "Opus 5.5", min: "2.1.281" },
   { id: "claude-opus-5", name: "Opus 5", min: "2.1.219" },
   { id: "claude-sonnet-5", name: "Sonnet 5", min: "2.0.0" },
   { id: "claude-opus-4-8", name: "Opus 4.8", min: "2.0.0" },
+  { id: "claude-opus-4-7", name: "Opus 4.7", min: "2.1.281" },
+  { id: "claude-opus-4-6", name: "Opus 4.6", min: "2.1.281" },
+  { id: "claude-sonnet-4-6", name: "Sonnet 4.6", min: "2.1.281" },
+  { id: "claude-opus-4-5", name: "Opus 4.5", min: "2.0.0" },
+  { id: "claude-sonnet-4-5", name: "Sonnet 4.5", min: "2.0.0" },
   { id: "claude-haiku-4-5", name: "Haiku 4.5", min: "2.0.0" },
+  { id: "claude-opus-4-1", name: "Opus 4.1", min: "2.0.0" },
+  { id: "claude-opus-4-0", name: "Opus 4", min: "2.0.0" },
+  { id: "claude-sonnet-4-0", name: "Sonnet 4", min: "2.0.0" },
 ];
 
 // Numeric compare on dotted versions; missing components read as 0.

@@ -6,6 +6,12 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-09-28
+
+### Added
+
+- The Claude Code provider lists every model the `claude` CLI accepts: Fable 5.1 and 5, Opus 5.5, and the Opus/Sonnet 4.x line alongside Opus 5, Sonnet 5, Opus 4.8 and Haiku 4.5.
+
 ## [0.7.0] — 2026-09-28
 
 ### Added

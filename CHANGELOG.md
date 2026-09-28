@@ -6,8 +6,12 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-28
+
 ### Added
 
+- **In-app updates.** Clicking the sidebar's update chip downloads the latest build, installs it in place and offers "Restart to apply update". On macOS the download must be signed with the same certificate as the running app; on Windows the replaced exe is removed on the next launch. Works from 0.7.0 on — 0.6.0 still links to the website.
+- **Overview hosts and lasting facts.** A row per SSH server (OS, boot time, disk), start or last-deploy time per app and TLS expiry per domain, all stored as absolute times. Uptime strings and placeholder CPU/memory are gone. Deploy is in the sidebar.
 - **Every command asks first.** `shellAccess` and `sshRun` wait for the user's approval, with the exact command shown (before secret substitution): Run, Run everything this turn, or Deny — a typed reply is passed to the model as the reason. Enforced in Go (`backend/tools/approval.go`), so both agent paths are covered. Approving a deployment plan approves its steps.
 - **Beta and Experimental tags** on the app, the Windows setup card, the harness providers and the Neon and Supabase connectors. Cursor is Experimental and asks for a one-time acknowledgement before it's used.
 - Harness system prompts now list the available skills, so `useSkill` is callable by name from Claude Code, Cursor and opencode too.

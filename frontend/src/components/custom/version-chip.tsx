@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Restart, Update, Version } from "@wails/go/main/App";
 import { BrowserOpenURL } from "@wails/runtime/runtime";
+import { notifyError } from "@/lib/notify";
 
 type Stage = "available" | "downloading" | "ready" | "failed";
 
@@ -32,11 +33,14 @@ export function VersionChip() {
       Update()
         .then(() => setStage("ready"))
         .catch((err) => {
-          console.error("update failed", err);
+          notifyError("Update failed", err);
           setStage("failed");
         });
     } else if (stage === "ready") {
-      Restart().catch(() => setStage("failed"));
+      Restart().catch((err) => {
+        notifyError("Restart failed", err);
+        setStage("failed");
+      });
     } else if (stage === "failed") {
       BrowserOpenURL("https://getvibeops.in");
     }

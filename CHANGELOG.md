@@ -6,6 +6,8 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.7.2] — 2026-09-28
+
 ### Added
 
 - **error.log.** Errors from providers, connectors, the updater, failed agent turns and failed tool calls are appended to `error.log` in the app's config folder (`~/Library/Application Support/VibeOps` on macOS, `%AppData%\VibeOps` on Windows), stamped with the time, version and platform. Run secrets and the OpenRouter key are redacted before writing, and the log rolls over at 1 MB. Settings → Troubleshooting → Show in folder reveals it.

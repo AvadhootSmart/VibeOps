@@ -18,8 +18,16 @@ export function CloneRepo(arg1) {
   return window['go']['main']['App']['CloneRepo'](arg1);
 }
 
+export function Restart() {
+  return window['go']['main']['App']['Restart']();
+}
+
 export function ShellPath(arg1) {
   return window['go']['main']['App']['ShellPath'](arg1);
+}
+
+export function Update() {
+  return window['go']['main']['App']['Update']();
 }
 
 export function Version() {

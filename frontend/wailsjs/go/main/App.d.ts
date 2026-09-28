@@ -10,7 +10,11 @@ export function ChooseKeyFile():Promise<string>;
 
 export function CloneRepo(arg1:string):Promise<string>;
 
+export function Restart():Promise<void>;
+
 export function ShellPath(arg1:string):Promise<string>;
+
+export function Update():Promise<void>;
 
 export function Version():Promise<main.VersionInfo>;
 

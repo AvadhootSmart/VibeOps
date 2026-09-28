@@ -38,6 +38,7 @@ func (a *App) startup(ctx context.Context) {
 	ask.SetEventCtx(ctx)
 	overview.SetEventCtx(ctx)
 	settings.ClearSecrets()
+	removeReplacedExe()
 	// Notifications only exist to bring the user back, so a click restores the
 	// window even if it was minimised.
 	runtime.OnNotificationResponse(ctx, func(runtime.NotificationResult) {

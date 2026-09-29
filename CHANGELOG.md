@@ -6,6 +6,8 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-09-29
+
 ### Added
 
 - **AWS, Azure, Google Cloud and MongoDB Atlas connectors** (`aws`, `az`, `gcloud`, `atlas`), each with a skill. Install uses Homebrew on macOS; on Windows, Install shows the official command to run in WSL, since those installers need sudo. AWS sign-in passes `--region us-east-1` when no region is configured and answers the "overwrite existing session?" prompt, both of which otherwise fail without a terminal; Atlas signs in with `--force --skipConfig` and is checked with `atlas projects list`, since `auth whoami` never goes online. `~/.aws`, `~/.azure` and `~/.config/gcloud` stay hidden from the model's shell until that cloud is connected, and are hidden again if its sign-in check fails.

@@ -14,6 +14,11 @@ import (
 	"strings"
 )
 
+// Prefix marks the skills VibeOps ships to users' agents. Anything else under
+// .agents/skills is a dev skill for this repo and is never listed, even when
+// `wails dev` reads the checkout instead of the embedded copy.
+const Prefix = "vibeops-"
+
 type Skill struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -55,6 +60,9 @@ func (s *Skills) List() []Skill {
 	}
 	entries, _ := fs.ReadDir(src, ".")
 	for _, e := range entries {
+		if !strings.HasPrefix(e.Name(), Prefix) {
+			continue
+		}
 		p := path.Join(e.Name(), "SKILL.md")
 		body, err := fs.ReadFile(src, p)
 		if err != nil {
@@ -138,6 +146,27 @@ func Install(dir string) error {
 		}
 		return os.WriteFile(target, b, 0o644)
 	})
+}
+
+// RemoveLegacy deletes ~/.agents/skills/<old>, the unprefixed name an earlier
+// VibeOps installed skill `dir` under, so a harness doesn't see both. Only when
+// its description matches the packaged skill's: that is the copy VibeOps put
+// there, where a user's own skill of the same name describes itself its own way.
+func RemoveLegacy(old, dir string) error {
+	body, err := os.ReadFile(filepath.Join(InstallDir(old), "SKILL.md"))
+	if err != nil {
+		return nil
+	}
+	packaged, err := fs.ReadFile(source(), path.Join(dir, "SKILL.md"))
+	if err != nil {
+		return nil
+	}
+	_, legacyDesc := frontmatter(string(body))
+	_, desc := frontmatter(string(packaged))
+	if legacyDesc == "" || legacyDesc != desc {
+		return nil
+	}
+	return os.RemoveAll(InstallDir(old))
 }
 
 // frontmatter pulls name/description out of a leading --- YAML block. Two

@@ -1,5 +1,5 @@
 ---
-name: supabase
+name: vibeops-supabase
 description: Manage Supabase projects with the `supabase` CLI — linking, database migrations (db push/pull/diff), edge functions, secrets, storage, and local dev stack. Use for any task involving a Supabase project, Postgres migrations, edge function deploys, or Supabase auth/storage config. Prefer these exact commands over guessing flags.
 ---
 

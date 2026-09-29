@@ -15,8 +15,8 @@ Embedded into the binary from `.agents/skills/`, and copied into
 | Skill | Source | License |
 |---|---|---|
 | `ai-elements` | [vercel/ai-elements](https://github.com/vercel/ai-elements) | Apache-2.0 (`.agents/skills/ai-elements/LICENSE`) |
-| `cloudflare` | [cloudflare/skills](https://github.com/cloudflare/skills) | Apache-2.0 (`.agents/skills/cloudflare/LICENSE`) |
-| `neon`, `supabase`, `vercel` | Written for VibeOps | FSL-1.1-MIT, like the rest of the repo |
+| `vibeops-cloudflare` | [cloudflare/skills](https://github.com/cloudflare/skills), renamed | Apache-2.0 (`.agents/skills/vibeops-cloudflare/LICENSE`) |
+| `vibeops-neon`, `vibeops-supabase`, `vibeops-vercel`, `vibeops-aws`, `vibeops-azure`, `vibeops-gcp`, `vibeops-mongodb-atlas` | Written for VibeOps | FSL-1.1-MIT, like the rest of the repo |
 
 ## Go modules
 

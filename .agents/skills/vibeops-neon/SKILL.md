@@ -1,5 +1,5 @@
 ---
-name: neon
+name: vibeops-neon
 description: Provision and manage Neon serverless Postgres with the `neon` CLI (aka `neonctl`) — projects, branches, databases, roles, connection strings, and psql. Use for any task involving a Neon database, database branching, or getting a Postgres connection string for a deployment. Prefer these exact commands over guessing flags.
 ---
 

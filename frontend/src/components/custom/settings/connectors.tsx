@@ -7,12 +7,14 @@ import {
   Install,
 } from "@wails/go/connectors/Connectors";
 import { connectors } from "@wails/go/models";
+import { EventsOn } from "@wails/runtime/runtime";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Panel, PanelRow } from "@/components/custom/panel";
 import { BETA_CONNECTORS, connectorLogos } from "@/lib/constants";
 import { StageBadge } from "@/components/custom/stage-badge";
-import { notifyError } from "@/lib/notify";
+import { ConnectorOutput } from "@/components/custom/settings/connector-output";
+import { notifyError, notifySuccess } from "@/lib/notify";
 
 // The deploy-target CLIs VibeOps can drive (wrangler, vercel, …), with their
 // detected state and a one-click install. Fully self-contained: it owns its
@@ -24,7 +26,11 @@ import { notifyError } from "@/lib/notify";
 // in is asked per connector, on a click: for neon and supabase that question
 // *is* a login flow, and checking all of them on mount opened browser windows
 // for connectors the user never wanted to connect.
-type Step = "install" | "connect" | "check";
+type Step = "install" | "connect" | "check" | "detect";
+
+// Enough for a login's code and URL, not so much that brew's install log
+// buries them.
+const OUTPUT_LINES = 12;
 
 export function Connectors() {
   const [connectors, setConnectors] = useState<connectors.Status[]>([]);
@@ -32,9 +38,20 @@ export function Connectors() {
   // authenticating it and re-checking it are separate actions.
   const [busy, setBusy] = useState<{ name: string; step: Step } | null>(null);
   const [loading, setLoading] = useState(true);
+  // Live CLI output per connector, for the step running now or the one that
+  // just failed.
+  const [output, setOutput] = useState<Record<string, string[]>>({});
+  // Connectors whose install command the user copied to run themselves.
+  const [copied, setCopied] = useState<string[]>([]);
 
   useEffect(() => {
     checkAll();
+    return EventsOn("connector:output", (name: string, line: string) =>
+      setOutput((all) => ({
+        ...all,
+        [name]: [...(all[name] ?? []), line].slice(-OUTPUT_LINES),
+      })),
+    );
   }, []);
 
   async function checkAll() {
@@ -52,14 +69,18 @@ export function Connectors() {
 
   async function run(name: string, step: Step) {
     setBusy({ name, step });
+    setOutput((all) => ({ ...all, [name]: [] }));
     try {
-      if (step === "check") {
+      if (step === "detect") {
+        await checkAll();
+      } else if (step === "check") {
         const status = await CheckAuth(name);
         setConnectors((all) => all.map((c) => (c.name === name ? status : c)));
       } else {
         await (step === "install" ? Install(name) : Connect(name));
         await checkAll();
       }
+      setOutput((all) => ({ ...all, [name]: [] }));
     } catch (e) {
       notifyError(`Failed to ${step} ${name}`, e, {
         fixable: true,
@@ -67,6 +88,21 @@ export function Connectors() {
       });
     } finally {
       setBusy(null);
+    }
+  }
+
+  // VibeOps can't run these installers itself (they need sudo inside WSL), so
+  // the user runs the command and comes back.
+  async function copyInstall(c: connectors.Status) {
+    try {
+      await navigator.clipboard.writeText(c.installCommand);
+      setCopied((names) => [...names, c.name]);
+      notifySuccess(
+        "Install command copied",
+        "Run it in your WSL terminal, then press Check again.",
+      );
+    } catch (e) {
+      notifyError("Failed to copy the install command", e);
     }
   }
 
@@ -93,7 +129,7 @@ export function Connectors() {
         connectors.map((c) => {
           const running = busy?.name === c.name ? busy.step : null;
           return (
-            <PanelRow key={c.name}>
+            <PanelRow key={c.name} className="flex-wrap">
               {connectorLogos[c.name] && (
                 <img
                   src={connectorLogos[c.name]}
@@ -109,8 +145,36 @@ export function Connectors() {
                 <div className="truncate text-meta text-muted-foreground">
                   {c.name} · {detail(c)}
                 </div>
+                {c.sharesCredentials && (
+                  <div className="truncate text-meta text-muted-foreground">
+                    {c.authenticated ? "Shares" : "Connecting shares"}{" "}
+                    <code>{c.sharesCredentials}</code> with the assistant's shell
+                  </div>
+                )}
               </div>
-              {!c.installed ? (
+              {!c.installed && c.installCommand ? (
+                <Button
+                  variant="outline"
+                  className="ml-auto"
+                  disabled={busy !== null}
+                  onClick={() =>
+                    copied.includes(c.name)
+                      ? run(c.name, "detect")
+                      : copyInstall(c)
+                  }
+                >
+                  {running === "detect" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Checking…
+                    </>
+                  ) : copied.includes(c.name) ? (
+                    "Check again"
+                  ) : (
+                    "Copy install command"
+                  )}
+                </Button>
+              ) : !c.installed ? (
                 <Button
                   variant="outline"
                   className="ml-auto"
@@ -164,6 +228,10 @@ export function Connectors() {
                   )}
                 </Button>
               )}
+              {!c.installed && copied.includes(c.name) && (
+                <ConnectorOutput lines={[c.installCommand]} />
+              )}
+              <ConnectorOutput lines={output[c.name] ?? []} />
             </PanelRow>
           );
         })}

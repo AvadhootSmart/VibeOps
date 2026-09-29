@@ -16,6 +16,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"VibeOps/backend/ask"
+	"VibeOps/backend/connectors"
 	"VibeOps/backend/errlog"
 	"VibeOps/backend/overview"
 	"VibeOps/backend/settings"
@@ -38,6 +39,7 @@ func (a *App) startup(ctx context.Context) {
 	tools.SetEventCtx(ctx)
 	ask.SetEventCtx(ctx)
 	overview.SetEventCtx(ctx)
+	connectors.SetEventCtx(ctx)
 	settings.ClearSecrets()
 	removeReplacedExe()
 	// Notifications only exist to bring the user back, so a click restores the

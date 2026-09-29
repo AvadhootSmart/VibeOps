@@ -6,6 +6,22 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+### Added
+
+- **AWS, Azure, Google Cloud and MongoDB Atlas connectors** (`aws`, `az`, `gcloud`, `atlas`), each with a skill. Install uses Homebrew on macOS; on Windows, Install shows the official command to run in WSL, since those installers need sudo. AWS sign-in passes `--region us-east-1` when no region is configured and answers the "overwrite existing session?" prompt, both of which otherwise fail without a terminal; Atlas signs in with `--force --skipConfig` and is checked with `atlas projects list`, since `auth whoami` never goes online. `~/.aws`, `~/.azure` and `~/.config/gcloud` stay hidden from the model's shell until that cloud is connected, and are hidden again if its sign-in check fails.
+- **Live sign-in output.** A connector's install, sign-in and check print into its Settings row as they run, with links clickable — Atlas's one-time code, or a URL a CLI couldn't open from WSL, used to be swallowed until the command ended. On Windows, Install for the cloud CLIs becomes "Copy install command" (their installers need sudo inside WSL), and connector sign-ins get `BROWSER=explorer.exe` so Python-based CLIs open the Windows browser.
+- Each cloud row says which credential folder connecting shares with the assistant's shell.
+
+### Changed
+
+- **Connector skills are prefixed `vibeops-`** (`vibeops-cloudflare`, `vibeops-vercel`, `vibeops-neon`, `vibeops-supabase`, `vibeops-aws`, `vibeops-azure`, `vibeops-gcp`, `vibeops-mongodb-atlas`), so an agent picks VibeOps' skill over a same-named one the user installed elsewhere. Connecting removes the unprefixed copy an earlier VibeOps put in `~/.agents/skills` — only when its description matches ours, so a user's own skill of that name is kept.
+- Only the `vibeops-` skills ship in the app and appear in the agent's skill list. `ai-elements`, a skill for developing VibeOps' own chat UI, was being embedded and offered to every user's agent.
+
+### Fixed
+
+- Atlas on macOS: VibeOps runs `atlas` with `/usr/bin/security` blocked, so its login lands in the config file the assistant's sandbox can read instead of the Keychain it can't. The model's shell now blocks `/usr/bin/security` outright, not only its Keychain lookups.
+- Sign-in checks that only read local files: Azure is checked with `az account get-access-token`, Google Cloud with a forced token refresh, so an expired session no longer shows as Connected.
+
 ## [0.7.2] — 2026-09-28
 
 ### Added

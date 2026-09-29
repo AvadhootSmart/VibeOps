@@ -24,8 +24,15 @@ import "path"
 // answers for whichever side of the WSL boundary a home is on.
 func bwrapArgs(homes []string, exists func(string) bool) []string {
 	args := []string{"--dev-bind", "/", "/", "--die-with-parent"}
-	for _, home := range homes {
-		for _, dir := range sensitiveDirs {
+	for i, home := range homes {
+		// Connecting a cloud shares the Linux home's credentials, which is where
+		// the CLI runs; the Windows home's copy (homes[1]) has no user of its own
+		// inside WSL and stays hidden.
+		dirs := sensitiveDirs
+		if i == 0 {
+			dirs = hiddenDirs()
+		}
+		for _, dir := range dirs {
 			if p := path.Join(home, dir); exists(p) {
 				args = append(args, "--tmpfs", p)
 			}

@@ -8,6 +8,10 @@ import cloudflareLogo from "../../images/cloudflare.png";
 import vercelLogo from "../../images/vercel.png";
 import neonLogo from "../../images/neon.png";
 import supabaseLogo from "../../images/supabase.png";
+import azureLogo from "../../images/azure.png";
+import awsLogo from "../../images/aws.png";
+import gcpLogo from "../../images/gcp.png";
+import mongodbLogo from "../../images/mongodb.png";
 
 // How each AI provider is drawn — the composer chip and its Settings row.
 //
@@ -29,13 +33,17 @@ export const experimentalWarning = (label: string) =>
   `${label} runs its own shell and file tools directly on your machine, outside VibeOps' sandbox and approval prompts. VibeOps' own tools are still gated.`;
 
 // Newest connectors, tagged Beta in Settings.
-export const BETA_CONNECTORS = ["neon", "supabase"];
+export const BETA_CONNECTORS = ["neon", "supabase", "az", "aws", "gcloud", "atlas"];
 
 export const connectorLogos: Record<string, string> = {
   wrangler: cloudflareLogo,
   vercel: vercelLogo,
   neon: neonLogo,
   supabase: supabaseLogo,
+  az: azureLogo,
+  aws: awsLogo,
+  gcloud: gcpLogo,
+  atlas: mongodbLogo,
 };
 
 // The agent names a provider the way a person would — "Cloudflare Workers",
@@ -49,6 +57,13 @@ const LOGO_KEYWORDS: [string, string][] = [
   ["vercel", vercelLogo],
   ["neon", neonLogo],
   ["supabase", supabaseLogo],
+  ["azure", azureLogo],
+  ["aws", awsLogo],
+  ["amazon", awsLogo],
+  ["google cloud", gcpLogo],
+  ["gcp", gcpLogo],
+  ["cloud run", gcpLogo],
+  ["mongo", mongodbLogo],
 ];
 
 export function providerLogo(provider: string): string | undefined {

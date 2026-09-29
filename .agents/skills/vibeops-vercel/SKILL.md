@@ -1,5 +1,5 @@
 ---
-name: vercel
+name: vibeops-vercel
 description: Deploy and manage projects on Vercel with the `vercel` CLI (aka `vc`) — deployments, env vars, project linking, logs, rollbacks, and domains. Use for any task involving Vercel deploys, preview/production releases, environment variables, or inspecting a Vercel project. Prefer these exact commands over guessing flags.
 ---
 

@@ -90,8 +90,12 @@ Not supported.
 - **Unsigned builds.** No Apple Developer ID or Windows code-signing
   certificate yet, hence the first-launch steps above.
 - **Connector CLI tokens are readable inside the sandbox.** The agent deploys by
-  running the Vercel, Wrangler, Neon and Supabase CLIs, and they must read their
-  own auth to work. Other credential stores are hidden.
+  running the Vercel, Wrangler, Neon, Supabase and Atlas CLIs, and they must read
+  their own auth to work. `~/.aws`, `~/.azure` and `~/.config/gcloud` stay
+  hidden until you connect AWS, Azure or Google Cloud in Settings → Connectors.
+  On macOS VibeOps keeps the Atlas CLI's login in its config file rather than
+  the Keychain, so the assistant's sandbox can read it. Other credential
+  stores are hidden.
 - **Only `$SECRET_` values are redacted.** The model is told not to read project
   `.env` files, but any other file contents an approved command prints do reach
   the model.

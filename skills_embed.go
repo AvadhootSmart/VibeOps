@@ -11,7 +11,10 @@ import (
 // read .agents/skills from, and connecting a connector installs its skill into
 // the user's own ~/.agents/skills. `all:` keeps the dot-prefixed path.
 //
-//go:embed all:.agents/skills
+// Only the vibeops- skills ship. The rest of .agents/skills (ai-elements) is
+// for developing VibeOps itself, installed there by the skills CLI.
+//
+//go:embed all:.agents/skills/vibeops-*
 var packagedSkills embed.FS
 
 func init() {

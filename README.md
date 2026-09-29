@@ -33,8 +33,8 @@ radius. Nothing runs until you approve it.
   `~/.kube`, cloud CLI tokens, `.npmrc`/`.netrc`, browser profiles or the
   Keychain. The kernel enforces this: seatbelt on macOS, bubblewrap inside
   WSL on Windows.
-- **Deploy with connectors.** Vercel, Cloudflare, Neon and Supabase, through
-  their own CLIs, signed in as you.
+- **Deploy with connectors.** Vercel, Cloudflare, Neon, Supabase, AWS, Azure,
+  Google Cloud and MongoDB Atlas, through their own CLIs, signed in as you.
 
 ## Download
 

@@ -37,7 +37,7 @@ func seatbelt(home string) (profile string, params []string) {
 		rules = append(rules, fmt.Sprintf(`(%s (param "%s"))`, kind, name))
 		params = append(params, "-D", name+"="+filepath.Join(home, rel))
 	}
-	for _, d := range append(append([]string{}, sensitiveDirs...), macOnlyDirs...) {
+	for _, d := range append(hiddenDirs(), macOnlyDirs...) {
 		add("subpath", d)
 	}
 	for _, f := range sensitiveFiles {
@@ -45,7 +45,12 @@ func seatbelt(home string) (profile string, params []string) {
 	}
 	profile = "(version 1)\n(allow default)\n" +
 		"(deny file-read* " + strings.Join(rules, " ") + ")\n" +
-		`(deny mach-lookup (global-name "com.apple.SecurityServer") (global-name "com.apple.securityd.xpc"))` + "\n"
+		`(deny mach-lookup (global-name "com.apple.SecurityServer") (global-name "com.apple.securityd.xpc"))` + "\n" +
+		// Blocked outright rather than left to fail at the mach-lookup: denied
+		// that way it still prints "could not be found", which go-keyring CLIs
+		// (atlas) read as "the Keychain works, it's just empty" and never fall
+		// back to their config file. Failing to exec, they do.
+		`(deny process-exec (literal "/usr/bin/security"))` + "\n"
 	return profile, params
 }
 

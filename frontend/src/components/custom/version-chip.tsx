@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { Restart, Update, Version } from "@wails/go/main/App";
 import { BrowserOpenURL } from "@wails/runtime/runtime";
 import { notifyError } from "@/lib/notify";
@@ -18,12 +19,17 @@ const LABEL: Record<Stage, (latest: string) => string> = {
 export function VersionChip() {
   const [version, setVersion] = useState({ current: "", latest: "" });
   const [stage, setStage] = useState<Stage>("available");
+  const [checking, setChecking] = useState(false);
 
-  useEffect(() => {
+  const check = () => {
+    setChecking(true);
     Version()
       .then(setVersion)
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  };
+
+  useEffect(check, []);
 
   if (!version.current) return null;
 
@@ -64,6 +70,15 @@ export function VersionChip() {
     <p className="flex items-center gap-2 py-1 text-meta text-muted-foreground/70">
       <span className="size-1.5 shrink-0 rounded-full bg-ok" />
       Version {version.current} · Beta
+      <button
+        onClick={check}
+        disabled={checking}
+        title="Check for updates"
+        aria-label="Check for updates"
+        className="ml-auto rounded p-0.5 hover:text-foreground"
+      >
+        <RefreshCw className={`size-3 ${checking ? "animate-spin" : ""}`} />
+      </button>
     </p>
   );
 }

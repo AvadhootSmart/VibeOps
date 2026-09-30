@@ -11,6 +11,7 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 ### Added
 
 - **`listConnectors` tool.** The agent can see which connectors VibeOps supports and which are installed and signed in. When proposing providers it still picks the best fit, and flags one you haven't connected as a setup step.
+- **Check for updates** from the refresh button beside the version in the sidebar; it used to check only at launch.
 
 ### Changed
 

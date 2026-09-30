@@ -6,6 +6,13 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.3] — 2026-09-30
+
+### Changed
+
+- **Windows: the app draws its own title bar.** The native frame is gone; minimise, maximise and close sit at the top right of the app's own title strip, as the traffic lights do on macOS.
+- **Windows: Install runs the cloud CLI installers in WSL.** Azure, AWS, Google Cloud and Atlas no longer show "Copy install command". If sudo needs a password, the sudo dialog asks for it, and the installer gets it through `sudo -S`.
+
 ## [0.9.0] — 2026-09-29
 
 ### Added

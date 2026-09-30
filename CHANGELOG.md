@@ -6,6 +6,16 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.4] — 2026-09-30
+
+### Added
+
+- **`listConnectors` tool.** The agent can see which connectors VibeOps supports and which are installed and signed in. When proposing providers it still picks the best fit, and flags one you haven't connected as a setup step.
+
+### Changed
+
+- Connector rows no longer show the "Connecting shares ~/…" line, which pushed the button onto its own row.
+
 ## [0.9.3] — 2026-09-30
 
 ### Changed

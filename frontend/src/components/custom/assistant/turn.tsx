@@ -56,6 +56,10 @@ const plural = (n: number) => `${n} tool call${n > 1 ? "s" : ""}`;
 // tool list so the card is the only place their arguments show up.
 const CARD_TOOLS = ["proposeProviders", "proposePlan"];
 
+// While streaming only the tail is shown, so a long run doesn't push the
+// answer off-screen; the full list comes back once the turn finishes.
+const STREAMING_TOOL_WINDOW = 5;
+
 // Memoised because a stream update rebuilds the transcript array while leaving
 // every finished turn's object identity alone — only the turn being written to
 // needs to re-render, and re-rendering the rest is what made a long chat crawl.
@@ -77,6 +81,9 @@ export const TurnView = memo(function TurnView({
   const steps = turn.result?.steps ?? [];
   const cards = steps.filter((s) => CARD_TOOLS.includes(s.toolName));
   const toolCalls = steps.filter((s) => !CARD_TOOLS.includes(s.toolName));
+  const visibleToolCalls = streaming
+    ? toolCalls.slice(-STREAMING_TOOL_WINDOW)
+    : toolCalls;
 
   return (
     <div className="space-y-4">
@@ -118,7 +125,7 @@ export const TurnView = memo(function TurnView({
               <Task defaultOpen>
                 <TaskTrigger title={`Ran ${plural(toolCalls.length)} into Go`} />
                 <TaskContent>
-                  {toolCalls.map((s) => (
+                  {visibleToolCalls.map((s) => (
                     <TaskItem key={s.id}>
                       <Tool className="w-full" defaultOpen={false}>
                         <ToolHeader

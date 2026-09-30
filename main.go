@@ -5,6 +5,7 @@ import (
 	"embed"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -174,6 +175,9 @@ func main() {
 		Mac: &mac.Options{
 			TitleBar: mac.TitleBarHiddenInset(),
 		},
+		// Windows has no hidden-title-bar mode, so the frame goes and the app
+		// draws its own minimise/maximise/close (WindowControls).
+		Frameless: runtime.GOOS == "windows",
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

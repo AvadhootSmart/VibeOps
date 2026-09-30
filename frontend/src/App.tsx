@@ -4,9 +4,11 @@ import "@/index.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ROUTES, DEFAULT_ROUTE } from "@/routes";
 import { useShortcuts } from "@/hooks/use-shortcuts";
-import { isMac } from "@/hooks/use-shortcuts";
+import { isMac, isWindows } from "@/hooks/use-shortcuts";
 import { Toaster } from "@/components/ui/sonner";
 import { AskDialog } from "@/components/custom/ask-dialog";
+import { WindowControls } from "@/components/custom/window-controls";
+import { SecretDialog } from "@/components/custom/secret-dialog";
 import {
   SidebarInset,
   SidebarProvider,
@@ -24,10 +26,11 @@ import {
 function TitleBar() {
   const { open } = useSidebar();
   return (
-    <header className="flex h-11 shrink-0 items-center px-2.5 [-webkit-app-region:drag]">
+    <header className="flex h-11 shrink-0 items-center px-2.5 [-webkit-app-region:drag] [--wails-draggable:drag]">
       <SidebarTrigger
-        className={`text-muted-foreground hover:text-foreground ${isMac && !open ? "ml-16" : ""} [-webkit-app-region:no-drag]`}
+        className={`text-muted-foreground hover:text-foreground ${isMac && !open ? "ml-16" : ""} [-webkit-app-region:no-drag] [--wails-draggable:no-drag]`}
       />
+      {isWindows && <WindowControls />}
     </header>
   );
 }
@@ -55,6 +58,7 @@ function Layout() {
       </SidebarInset>
       <Toaster position="top-center" richColors />
       <AskDialog />
+      <SecretDialog />
     </SidebarProvider>
   );
 }

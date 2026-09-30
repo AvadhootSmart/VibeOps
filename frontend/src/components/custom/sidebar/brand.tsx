@@ -8,7 +8,7 @@ import { StageBadge } from "@/components/custom/stage-badge";
 export function SidebarBrand() {
   return (
     <div
-      className={`[-webkit-app-region:drag] ${isMac ? "pt-11" : "pt-1"}`}
+      className={`[-webkit-app-region:drag] [--wails-draggable:drag] ${isMac ? "pt-11" : "pt-1"}`}
     >
       <div className="flex h-11 select-none items-center gap-2.5 px-2">
         {/* The app icon, not a letter in the header: the mark gets its own

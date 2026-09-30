@@ -149,14 +149,6 @@ func TestAtlasRunsWithoutKeychain(t *testing.T) {
 	}
 }
 
-func TestStatusCarriesSharedCredentials(t *testing.T) {
-	c, _ := find("gcloud")
-	got := newStatus(c)
-	if got.SharesCredentials != "~/.config/gcloud" {
-		t.Fatalf("sharesCredentials = %q", got.SharesCredentials)
-	}
-}
-
 func TestRunStripsTerminalNoise(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("printf runs inside WSL on Windows")

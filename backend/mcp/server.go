@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"VibeOps/backend/connectors"
 	"VibeOps/backend/overview"
 	"VibeOps/backend/settings"
 	"VibeOps/backend/skills"
@@ -58,6 +59,7 @@ type server struct {
 	tool   *tools.Tool
 	ov     *overview.Overview
 	skills *skills.Skills
+	conn   *connectors.Connectors
 	out    *json.Encoder
 }
 
@@ -69,6 +71,7 @@ func Serve() error {
 		tool:   tools.NewTools(),
 		ov:     overview.NewOverview(),
 		skills: skills.NewSkills(),
+		conn:   connectors.NewConnectors(),
 		out:    json.NewEncoder(os.Stdout),
 	}
 	scanner := bufio.NewScanner(os.Stdin)
@@ -214,6 +217,11 @@ func (s *server) callTool(req *rpcRequest) {
 		// the binding, which unmarshals and persists it (no Wails event here).
 		err := s.ov.GenerateOverview(string(p.Arguments))
 		s.reply(req.ID, textResult(orErr("Overview updated.", err), err != nil))
+
+	case "listConnectors":
+		statuses, err := s.conn.CheckAll()
+		b, _ := json.Marshal(statuses)
+		s.reply(req.ID, textResult(orErr(string(b), err), err != nil))
 
 	case "proposeProviders", "proposePlan":
 		// Render-only: the desktop app draws the card from the arguments it

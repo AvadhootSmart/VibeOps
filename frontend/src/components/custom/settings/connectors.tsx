@@ -140,12 +140,6 @@ export function Connectors() {
                 <div className="truncate text-meta text-muted-foreground">
                   {c.name} · {detail(c)}
                 </div>
-                {c.sharesCredentials && (
-                  <div className="truncate text-meta text-muted-foreground">
-                    {c.authenticated ? "Shares" : "Connecting shares"}{" "}
-                    <code>{c.sharesCredentials}</code> with the assistant's shell
-                  </div>
-                )}
               </div>
               {!c.installed ? (
                 <Button

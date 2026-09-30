@@ -12,6 +12,7 @@ import { useSkillTool } from "./skills";
 import { generateOverviewTool } from "./overview";
 import { SudoAuthTool, SecretRequestTool } from "./secrets";
 import { proposeProvidersTool, proposePlanTool } from "./deployment";
+import { listConnectorsTool } from "./connectors";
 
 // Central tool registry passed to the agent. To add a tool: create a file in
 // this folder exporting a `tool({...})`, then register it here under the name
@@ -29,6 +30,7 @@ export const tools = {
   getAllowedServers: getAllowedServers,
   useSkill: useSkillTool,
   generateOverview: generateOverviewTool,
+  listConnectors: listConnectorsTool,
   proposeProviders: proposeProvidersTool,
   proposePlan: proposePlanTool,
 } as const;

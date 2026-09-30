@@ -98,17 +98,10 @@ type Status struct {
 	Checked       bool   `json:"checked"`
 	Authenticated bool   `json:"authenticated"`
 	Version       string `json:"version"`
-	// SharesCredentials is the credential dir connecting makes readable to the
-	// model's shell, e.g. "~/.aws".
-	SharesCredentials string `json:"sharesCredentials"`
 }
 
 func newStatus(c connector) Status {
-	s := Status{Name: c.Name, DisplayName: c.DisplayName}
-	if c.Credentials != "" {
-		s.SharesCredentials = "~/" + c.Credentials
-	}
-	return s
+	return Status{Name: c.Name, DisplayName: c.DisplayName}
 }
 
 var supported = []connector{

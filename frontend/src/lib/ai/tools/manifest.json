@@ -262,6 +262,15 @@
     }
   },
   {
+    "name": "listConnectors",
+    "description": "List the deployment connectors VibeOps supports (Cloudflare, Vercel, Neon, Supabase, Azure, AWS, Google Cloud, MongoDB Atlas) and, for each, whether its CLI is installed (`installed`) and signed in (`authenticated`, meaningful only when `checked` is true — otherwise sign-in is unknown). A reference, not a shortlist: choose each service's provider on fit first, then use this to tell the user which of your picks they still need to install or connect in Settings → Connectors. Never pass over the best-fitting provider because it is not connected yet.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "proposeProviders",
     "description": "Show the user a visual card of which deployment provider you recommend for each service you found in the project. Call this ONCE, right after scanning the repo, INSTEAD of writing the same thing out as a paragraph or a markdown table — the card is what the user reads, so do not repeat its contents in your reply. Say only a sentence or two around it. After calling it, STOP and wait for the user to confirm or change the picks; do not start deploying and do not call proposePlan in the same turn.",
     "inputSchema": {
@@ -290,7 +299,7 @@
                 "items": { "type": "string" }
               },
               "runs": { "type": "string", "description": "How it runs, in plain language, e.g. \"static build served at the edge\" or \"long-lived Node process\"." },
-              "provider": { "type": "string", "description": "The provider you recommend for this service, e.g. \"Vercel\", \"Neon\", or the name of one of the user's servers." },
+              "provider": { "type": "string", "description": "The provider you recommend for this service, e.g. \"Vercel\", \"Neon\", or the name of one of the user's servers. The best fit, whether or not it is connected yet." },
               "why": { "type": "string", "description": "One sentence on why this provider fits this service." },
               "alternatives": {
                 "type": "array",
@@ -299,7 +308,7 @@
               },
               "warning": {
                 "type": "string",
-                "description": "Only when something blocks the obvious choice — e.g. the service shells out to ffmpeg so it cannot go serverless, or it must stay with another service because it needs its URL at build time. Omit otherwise."
+                "description": "Only when something blocks the obvious choice — e.g. the service shells out to ffmpeg so it cannot go serverless, or it must stay with another service because it needs its URL at build time — or when the recommended provider is not installed or connected yet (see listConnectors): say to connect it in Settings → Connectors before deploying. Omit otherwise."
               }
             },
             "required": ["name", "kind", "path", "stack", "runs", "provider", "why"],

@@ -14,7 +14,8 @@ import { Panel, PanelRow } from "@/components/custom/panel";
 import { BETA_CONNECTORS, connectorLogos } from "@/lib/constants";
 import { StageBadge } from "@/components/custom/stage-badge";
 import { ConnectorOutput } from "@/components/custom/settings/connector-output";
-import { notifyError, notifySuccess } from "@/lib/notify";
+import { requestSecret, SUDO_SECRET } from "@/lib/ai/secrets";
+import { notifyError } from "@/lib/notify";
 
 // The deploy-target CLIs VibeOps can drive (wrangler, vercel, …), with their
 // detected state and a one-click install. Fully self-contained: it owns its
@@ -26,7 +27,7 @@ import { notifyError, notifySuccess } from "@/lib/notify";
 // in is asked per connector, on a click: for neon and supabase that question
 // *is* a login flow, and checking all of them on mount opened browser windows
 // for connectors the user never wanted to connect.
-type Step = "install" | "connect" | "check" | "detect";
+type Step = "install" | "connect" | "check";
 
 // Enough for a login's code and URL, not so much that brew's install log
 // buries them.
@@ -41,8 +42,6 @@ export function Connectors() {
   // Live CLI output per connector, for the step running now or the one that
   // just failed.
   const [output, setOutput] = useState<Record<string, string[]>>({});
-  // Connectors whose install command the user copied to run themselves.
-  const [copied, setCopied] = useState<string[]>([]);
 
   useEffect(() => {
     checkAll();
@@ -71,13 +70,11 @@ export function Connectors() {
     setBusy({ name, step });
     setOutput((all) => ({ ...all, [name]: [] }));
     try {
-      if (step === "detect") {
-        await checkAll();
-      } else if (step === "check") {
+      if (step === "check") {
         const status = await CheckAuth(name);
         setConnectors((all) => all.map((c) => (c.name === name ? status : c)));
       } else {
-        await (step === "install" ? Install(name) : Connect(name));
+        await (step === "install" ? install(name) : Connect(name));
         await checkAll();
       }
       setOutput((all) => ({ ...all, [name]: [] }));
@@ -91,18 +88,16 @@ export function Connectors() {
     }
   }
 
-  // VibeOps can't run these installers itself (they need sudo inside WSL), so
-  // the user runs the command and comes back.
-  async function copyInstall(c: connectors.Status) {
-    try {
-      await navigator.clipboard.writeText(c.installCommand);
-      setCopied((names) => [...names, c.name]);
-      notifySuccess(
-        "Install command copied",
-        "Run it in your WSL terminal, then press Check again.",
-      );
-    } catch (e) {
-      notifyError("Failed to copy the install command", e);
+  // The apt installers inside WSL need sudo; Go says so when it has no
+  // password, or a wrong one, and the sudo dialog hands it one. Cancel stops.
+  async function install(name: string) {
+    for (;;) {
+      try {
+        return await Install(name);
+      } catch (e) {
+        if (String(e) !== "sudo password required") throw e;
+        if (!(await requestSecret(SUDO_SECRET, `install ${name}`))) return;
+      }
     }
   }
 
@@ -152,29 +147,7 @@ export function Connectors() {
                   </div>
                 )}
               </div>
-              {!c.installed && c.installCommand ? (
-                <Button
-                  variant="outline"
-                  className="ml-auto"
-                  disabled={busy !== null}
-                  onClick={() =>
-                    copied.includes(c.name)
-                      ? run(c.name, "detect")
-                      : copyInstall(c)
-                  }
-                >
-                  {running === "detect" ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Checking…
-                    </>
-                  ) : copied.includes(c.name) ? (
-                    "Check again"
-                  ) : (
-                    "Copy install command"
-                  )}
-                </Button>
-              ) : !c.installed ? (
+              {!c.installed ? (
                 <Button
                   variant="outline"
                   className="ml-auto"
@@ -227,9 +200,6 @@ export function Connectors() {
                     "Connect"
                   )}
                 </Button>
-              )}
-              {!c.installed && copied.includes(c.name) && (
-                <ConnectorOutput lines={[c.installCommand]} />
               )}
               <ConnectorOutput lines={output[c.name] ?? []} />
             </PanelRow>

@@ -8,7 +8,6 @@ import {
   Composer,
   type ComposerHandle,
 } from "@/components/custom/assistant/composer";
-import { SecretDialog } from "@/components/custom/secret-dialog";
 import { ShellStatus } from "@/components/custom/shell-status";
 
 // Openers for a blank chat. Deliberately the read-only kind: the first thing
@@ -71,7 +70,6 @@ export default function Assistant() {
 
   return (
     <Page width="prose" className="flex h-full flex-col gap-5 pb-5">
-      <SecretDialog />
       <ShellStatus />
       {turns.length === 0 ? (
         <div className="flex flex-1 flex-col justify-center">

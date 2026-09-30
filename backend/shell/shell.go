@@ -94,3 +94,33 @@ type Status struct {
 	Ready   bool   `json:"ready"`
 	Message string `json:"message"`
 }
+
+// SudoPreamble spends the sudo password before the model's command can read it.
+//
+// The password arrives on the session's stdin, and the model writes the command
+// that stdin is attached to — so a command like `head -1 > /tmp/p; sudo true`
+// matches the sudo check, gets the password piped in, and captures it instead of
+// passing it to sudo. Feeding an agent-authored shell a secret on stdin and
+// trusting it to consume it correctly is not a boundary.
+//
+// So sudo takes it first, from a line we control, and stdin is then replaced
+// with /dev/null. `-v` caches the credential instead of running anything; the
+// model's own sudo calls ride that cache. Any later prompt reads EOF and fails
+// fast rather than hanging for 120s.
+//
+// One session, not two: with no TTY, sudo keys its timestamp to the parent pid,
+// so a credential cached in a separate exec session would not be seen here.
+//
+// The trailing exit is load-bearing for the same reason. A shell with nothing
+// left to do after the last command exec()s it in its own process instead of
+// forking (zsh and bash 5 both do this), which would hand the model's sudo
+// sshd as its parent rather than this shell — missing the credential -v just
+// cached and failing with sudo's own "a terminal is required". Leaving a
+// statement after the command forces the fork, and $? carries the real status.
+func SudoPreamble(command string) string {
+	return "sudo -S -p '' -v || { echo 'sudo authentication failed' >&2; exit 1; }\n" +
+		"exec 0</dev/null\n" +
+		command + "\n" +
+		"__vibeops_rc=$?\n" +
+		"exit $__vibeops_rc"
+}

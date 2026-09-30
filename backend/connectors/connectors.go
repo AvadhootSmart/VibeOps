@@ -14,6 +14,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"VibeOps/backend/jsonstore"
+	"VibeOps/backend/settings"
 	"VibeOps/backend/shell"
 	"VibeOps/backend/skills"
 )
@@ -49,10 +51,9 @@ type connector struct {
 	// user installed elsewhere, and knows it describes VibeOps' setup.
 	Skill string
 	// Brew is set for the CLIs that aren't npm packages. Homebrew installs them
-	// on macOS; elsewhere the official installers need sudo, which VibeOps has no
-	// terminal to ask for, so Install hands the user ManualInstall instead.
-	Brew          []string
-	ManualInstall string
+	// on macOS; in WSL Install runs AptInstall, with sudo.
+	Brew       []string
+	AptInstall string
 	// ManualLogin replaces a failed Connect's error on Windows, for a CLI whose
 	// login can fall back to a flow that needs typed input VibeOps can't give.
 	ManualLogin string
@@ -97,9 +98,6 @@ type Status struct {
 	Checked       bool   `json:"checked"`
 	Authenticated bool   `json:"authenticated"`
 	Version       string `json:"version"`
-	// InstallCommand is set when VibeOps can't install the CLI itself on this
-	// platform: the command for the user to run instead.
-	InstallCommand string `json:"installCommand"`
 	// SharesCredentials is the credential dir connecting makes readable to the
 	// model's shell, e.g. "~/.aws".
 	SharesCredentials string `json:"sharesCredentials"`
@@ -107,9 +105,6 @@ type Status struct {
 
 func newStatus(c connector) Status {
 	s := Status{Name: c.Name, DisplayName: c.DisplayName}
-	if _, err := c.installCommand(); err != nil {
-		s.InstallCommand = c.ManualInstall
-	}
 	if c.Credentials != "" {
 		s.SharesCredentials = "~/" + c.Credentials
 	}
@@ -125,10 +120,10 @@ var supported = []connector{
 		Name: "az", DisplayName: "Azure", Skill: "vibeops-azure",
 		// Not `account show`: it only reads azureProfile.json, so an expired
 		// session still passes it. This refreshes, and prints only the expiry.
-		AuthCheck:     []string{"account", "get-access-token", "--query", "expiresOn", "-o", "tsv"},
-		Brew:          []string{"azure-cli"},
-		ManualInstall: "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
-		Credentials:   ".azure",
+		AuthCheck:   []string{"account", "get-access-token", "--query", "expiresOn", "-o", "tsv"},
+		Brew:        []string{"azure-cli"},
+		AptInstall:  "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
+		Credentials: ".azure",
 	},
 	{
 		// `aws login` (CLI 2.32+) is the browser console sign-in; SSO and access
@@ -136,21 +131,21 @@ var supported = []connector{
 		// Answers "y" to "Profile default is already configured to use session
 		// X. Do you want to overwrite it?" — pressing Connect means yes.
 		Name: "aws", DisplayName: "AWS", Skill: "vibeops-aws",
-		AuthCheck:     []string{"sts", "get-caller-identity"},
-		Answers:       "y\n",
-		Flags:         awsRegionIfUnset,
-		Brew:          []string{"awscli"},
-		ManualInstall: `sudo apt-get install -y unzip && curl -fsSLo /tmp/awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" && unzip -qo /tmp/awscliv2.zip -d /tmp && sudo /tmp/aws/install --update`,
-		Credentials:   ".aws",
+		AuthCheck:   []string{"sts", "get-caller-identity"},
+		Answers:     "y\n",
+		Flags:       awsRegionIfUnset,
+		Brew:        []string{"awscli"},
+		AptInstall:  `sudo apt-get install -y unzip && curl -fsSLo /tmp/awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" && unzip -qo /tmp/awscliv2.zip -d /tmp && sudo /tmp/aws/install --update`,
+		Credentials: ".aws",
 	},
 	{
 		Name: "gcloud", DisplayName: "Google Cloud", Skill: "vibeops-gcp",
 		Login: []string{"auth", "login"},
 		// Forces a token refresh, so a revoked sign-in fails; prints only the
 		// expiry, where print-access-token would put a token on screen.
-		AuthCheck:     []string{"config", "config-helper", "--force-auth-refresh", "--format=value(credential.token_expiry)", "--quiet"},
-		Brew:          []string{"--cask", "gcloud-cli"},
-		ManualInstall: `sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg curl && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/cloud.google.gpg && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list && sudo apt-get update && sudo apt-get install -y google-cloud-cli`,
+		AuthCheck:  []string{"config", "config-helper", "--force-auth-refresh", "--format=value(credential.token_expiry)", "--quiet"},
+		Brew:       []string{"--cask", "gcloud-cli"},
+		AptInstall: `sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg curl && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/cloud.google.gpg && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list && sudo apt-get update && sudo apt-get install -y google-cloud-cli`,
 		// Without a browser WSL can open (no WSLg on Windows 10), gcloud falls
 		// back to pasting a code into the terminal.
 		ManualLogin: "Google Cloud couldn't finish signing in from VibeOps. Run `gcloud auth login` in your WSL terminal, then press Check sign-in.",
@@ -164,10 +159,10 @@ var supported = []connector{
 		Login: []string{"auth", "login", "--force", "--skipConfig"},
 		// Not `auth whoami`: it only reads the local config, so an expired
 		// session still passes it.
-		AuthCheck:     []string{"projects", "list"},
-		Brew:          []string{"mongodb-atlas-cli"},
-		ManualInstall: `curl -fsSL https://pgp.mongodb.com/server-8.0.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/mongodb-server-8.0.gpg && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.com/apt/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME)/mongodb-enterprise/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-enterprise-8.0.list && sudo apt-get update && sudo apt-get install -y mongodb-atlas-cli`,
-		NoKeychain:    true,
+		AuthCheck:  []string{"projects", "list"},
+		Brew:       []string{"mongodb-atlas-cli"},
+		AptInstall: `curl -fsSL https://pgp.mongodb.com/server-8.0.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/mongodb-server-8.0.gpg && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.com/apt/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME)/mongodb-enterprise/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-enterprise-8.0.list && sudo apt-get update && sudo apt-get install -y mongodb-atlas-cli`,
+		NoKeychain: true,
 	},
 }
 
@@ -200,16 +195,34 @@ func sharedCredentials() []string {
 	return dirs
 }
 
-func (c connector) installCommand() ([]string, error) {
+// ErrSudoPassword is matched by the frontend, which asks for the password
+// through the sudo dialog and retries.
+var ErrSudoPassword = errors.New("sudo password required")
+
+// installCommand returns the command and the stdin it needs.
+func (c connector) installCommand(ctx context.Context) ([]string, string, error) {
 	if len(c.Brew) == 0 {
 		// ponytail: assumes npm on PATH; surface stderr if it isn't.
-		return []string{"npm", "install", "-g", c.Name}, nil
+		return []string{"npm", "install", "-g", c.Name}, "", nil
 	}
 	if goruntime.GOOS == "darwin" {
 		// ponytail: assumes Homebrew; surface stderr if it isn't there.
-		return append([]string{"brew", "install"}, c.Brew...), nil
+		return append([]string{"brew", "install"}, c.Brew...), "", nil
 	}
-	return nil, fmt.Errorf("install %s from your WSL terminal: %s", c.DisplayName, c.ManualInstall)
+	if _, err := run(ctx, nil, "", "sudo", "-n", "true"); err == nil {
+		return []string{"bash", "-c", c.AptInstall}, "", nil
+	}
+	// sudo has no terminal inside WSL, so the password the user gave the sudo
+	// dialog goes in on stdin. Checked first so a wrong one re-prompts instead
+	// of failing halfway through the install.
+	password := settings.GetSecret(settings.SudoSecret)
+	if password == "" {
+		return nil, "", ErrSudoPassword
+	}
+	if _, err := run(ctx, nil, password+"\n", "sudo", "-S", "-k", "-p", "", "true"); err != nil {
+		return nil, "", ErrSudoPassword
+	}
+	return []string{"bash", "-c", shell.SudoPreamble(c.AptInstall)}, password + "\n", nil
 }
 
 // Every call below crosses into WSL on Windows, where a cold or wedged distro
@@ -336,13 +349,13 @@ func (s *Connectors) Install(name string) error {
 	if err != nil {
 		return err
 	}
-	command, err := c.installCommand()
+	ctx, cancel := context.WithTimeout(context.Background(), installTimeout)
+	defer cancel()
+	command, stdin, err := c.installCommand(ctx)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), installTimeout)
-	defer cancel()
-	out, err := run(ctx, &c, "", command[0], command[1:]...)
+	out, err := run(ctx, &c, stdin, command[0], command[1:]...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", string(out), err)
 	}

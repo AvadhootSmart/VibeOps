@@ -3,6 +3,8 @@ package tools
 import (
 	"strings"
 	"testing"
+
+	"VibeOps/backend/shell"
 )
 
 // The leak this guards against is ordering, so that is what gets asserted: sudo
@@ -10,7 +12,7 @@ import (
 // gone by the time it does.
 func TestSudoPreambleSpendsPasswordFirst(t *testing.T) {
 	const capture = "head -1 > /tmp/p; sudo true"
-	got := sudoPreamble(capture)
+	got := shell.SudoPreamble(capture)
 
 	sudo := strings.Index(got, "sudo -S -p '' -v")
 	closed := strings.Index(got, "exec 0</dev/null")
@@ -25,7 +27,7 @@ func TestSudoPreambleSpendsPasswordFirst(t *testing.T) {
 }
 
 func TestSudoPreambleStopsOnBadPassword(t *testing.T) {
-	got := sudoPreamble("rm -rf /var/log/app")
+	got := shell.SudoPreamble("rm -rf /var/log/app")
 	if !strings.Contains(got, "exit 1") {
 		t.Error("failed auth must abort; otherwise the command runs unprivileged and its damage is silent")
 	}
@@ -37,11 +39,11 @@ func TestSudoPreambleStopsOnBadPassword(t *testing.T) {
 // The password is never part of the string handed to the remote shell — that is
 // what keeps it out of ps and shell history.
 func TestSudoPreambleCarriesNoSecret(t *testing.T) {
-	if strings.Contains(sudoPreamble("sudo apt update"), "-p ''  ") {
+	if strings.Contains(shell.SudoPreamble("sudo apt update"), "-p ''  ") {
 		t.Error("prompt flag should stay empty")
 	}
 	for _, s := range []string{"password", "PASS", "hunter2"} {
-		if strings.Contains(sudoPreamble("sudo apt update"), s) {
+		if strings.Contains(shell.SudoPreamble("sudo apt update"), s) {
 			t.Errorf("preamble should be secret-free, found %q", s)
 		}
 	}
@@ -53,7 +55,7 @@ func TestSudoPreambleCarriesNoSecret(t *testing.T) {
 // "a terminal is required to read the password" this preamble exists to avoid.
 func TestSudoPreambleKeepsShellAlive(t *testing.T) {
 	const cmd = "sudo certbot --nginx -d example.com"
-	got := sudoPreamble(cmd)
+	got := shell.SudoPreamble(cmd)
 	after := strings.TrimSpace(got[strings.Index(got, cmd)+len(cmd):])
 	if after == "" {
 		t.Fatalf("model command is last; the shell will exec it and sudo loses its parent:\n%s", got)

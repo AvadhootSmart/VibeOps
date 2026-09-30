@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 
 	"VibeOps/backend/settings"
+	"VibeOps/backend/shell"
 )
 
 // The SSH client runs on the Windows side of the WSL boundary — deliberately,
@@ -111,36 +112,6 @@ func (s *SSH) Connect(host string, port int, user string, keyPath string) (strin
 	return id, nil
 }
 
-// sudoPreamble spends the sudo password before the model's command can read it.
-//
-// The password arrives on the session's stdin, and the model writes the command
-// that stdin is attached to — so a command like `head -1 > /tmp/p; sudo true`
-// matches the sudo check, gets the password piped in, and captures it instead of
-// passing it to sudo. Feeding an agent-authored shell a secret on stdin and
-// trusting it to consume it correctly is not a boundary.
-//
-// So sudo takes it first, from a line we control, and stdin is then replaced
-// with /dev/null. `-v` caches the credential instead of running anything; the
-// model's own sudo calls ride that cache. Any later prompt reads EOF and fails
-// fast rather than hanging for 120s.
-//
-// One session, not two: with no TTY, sudo keys its timestamp to the parent pid,
-// so a credential cached in a separate exec session would not be seen here.
-//
-// The trailing exit is load-bearing for the same reason. A shell with nothing
-// left to do after the last command exec()s it in its own process instead of
-// forking (zsh and bash 5 both do this), which would hand the model's sudo
-// sshd as its parent rather than this shell — missing the credential -v just
-// cached and failing with sudo's own "a terminal is required". Leaving a
-// statement after the command forces the fork, and $? carries the real status.
-func sudoPreamble(command string) string {
-	return "sudo -S -p '' -v || { echo 'sudo authentication failed' >&2; exit 1; }\n" +
-		"exec 0</dev/null\n" +
-		command + "\n" +
-		"__vibeops_rc=$?\n" +
-		"exit $__vibeops_rc"
-}
-
 // RunRemote executes one command on an established connection and returns
 // combined stdout+stderr. A non-zero exit status is reported inside the
 // output (not as a Go error) so the model always sees what the command
@@ -158,7 +129,7 @@ func sudoPreamble(command string) string {
 // The password reaches `sudo -S` on the remote over stdin — never the command
 // string, so it can't leak into `ps`, shell history, or logs. There is no TTY
 // over an exec session, which is why -S is needed at all. It is not handed to
-// the model's command directly: see sudoPreamble.
+// the model's command directly: see shell.SudoPreamble.
 func (s *SSH) RunRemote(sessionID string, command string, runID string) (string, error) {
 	sudoPassword := ""
 	if localSudo.MatchString(command) {
@@ -200,7 +171,7 @@ func (s *SSH) RunRemote(sessionID string, command string, runID string) (string,
 	run := injected
 	if sudoPassword != "" {
 		sess.Stdin = strings.NewReader(sudoPassword + "\n")
-		run = sudoPreamble(injected)
+		run = shell.SudoPreamble(injected)
 	}
 
 	type result struct {

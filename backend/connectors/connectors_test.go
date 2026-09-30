@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"VibeOps/backend/skills"
@@ -150,15 +149,9 @@ func TestAtlasRunsWithoutKeychain(t *testing.T) {
 	}
 }
 
-func TestStatusCarriesManualInstallOffMacOS(t *testing.T) {
+func TestStatusCarriesSharedCredentials(t *testing.T) {
 	c, _ := find("gcloud")
 	got := newStatus(c)
-	if runtime.GOOS == "darwin" && got.InstallCommand != "" {
-		t.Fatalf("macOS installs gcloud itself, got manual command %q", got.InstallCommand)
-	}
-	if runtime.GOOS != "darwin" && !strings.Contains(got.InstallCommand, "google-cloud-cli") {
-		t.Fatalf("install command = %q", got.InstallCommand)
-	}
 	if got.SharesCredentials != "~/.config/gcloud" {
 		t.Fatalf("sharesCredentials = %q", got.SharesCredentials)
 	}

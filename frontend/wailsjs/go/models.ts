@@ -34,7 +34,6 @@ export namespace connectors {
 	    checked: boolean;
 	    authenticated: boolean;
 	    version: string;
-	    installCommand: string;
 	    sharesCredentials: string;
 	
 	    static createFrom(source: any = {}) {
@@ -49,7 +48,6 @@ export namespace connectors {
 	        this.checked = source["checked"];
 	        this.authenticated = source["authenticated"];
 	        this.version = source["version"];
-	        this.installCommand = source["installCommand"];
 	        this.sharesCredentials = source["sharesCredentials"];
 	    }
 	}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { onSecretPrompt, SUDO_SECRET } from "@/lib/ai";
+// Not the "@/lib/ai" barrel: this is mounted in the app shell, and the barrel
+// drags the whole AI SDK into the first paint.
+import { onSecretPrompt, SUDO_SECRET } from "@/lib/ai/secrets";
 import { EventsOn } from "@wails/runtime/runtime";
 import { ResolveSecret } from "@wails/go/tools/Harness";
 import { Button } from "@/components/ui/button";
@@ -81,7 +83,7 @@ export function SecretDialog() {
           </DialogTitle>
           <DialogDescription>
             {isSudo
-              ? "The agent wants to run a command as root:"
+              ? "This runs as root:"
               : "The agent needs this value but never sees it — VibeOps substitutes it when the command runs."}
             <code className="mt-2 block break-all rounded bg-muted px-2 py-1 text-xs">
               {pending?.reason}

@@ -11,8 +11,7 @@ import { EventsOn } from "@wails/runtime/runtime";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Panel, PanelRow } from "@/components/custom/panel";
-import { BETA_CONNECTORS, connectorLogos } from "@/lib/constants";
-import { StageBadge } from "@/components/custom/stage-badge";
+import { connectorLogos } from "@/lib/constants";
 import { ConnectorOutput } from "@/components/custom/settings/connector-output";
 import { requestSecret, SUDO_SECRET } from "@/lib/ai/secrets";
 import { notifyError } from "@/lib/notify";
@@ -133,10 +132,7 @@ export function Connectors() {
                 />
               )}
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-item">
-                  {c.displayName}
-                  {BETA_CONNECTORS.includes(c.name) && <StageBadge stage="beta" />}
-                </div>
+                <div className="text-item">{c.displayName}</div>
                 <div className="truncate text-meta text-muted-foreground">
                   {c.name} · {detail(c)}
                 </div>

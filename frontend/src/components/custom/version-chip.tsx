@@ -69,7 +69,7 @@ export function VersionChip() {
   return (
     <p className="flex items-center gap-2 py-1 text-meta text-muted-foreground/70">
       <span className="size-1.5 shrink-0 rounded-full bg-ok" />
-      Version {version.current} · Beta
+      Version {version.current}
       <button
         onClick={check}
         disabled={checking}

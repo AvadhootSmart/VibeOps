@@ -6,6 +6,12 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.5] — 2026-09-30
+
+### Changed
+
+- **Beta tags are gone from the version, providers and connectors.** The whole app is beta, which the tag beside the app name already says.
+
 ## [0.9.4] — 2026-09-30
 
 ### Added

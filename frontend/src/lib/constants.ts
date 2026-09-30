@@ -17,23 +17,19 @@ import mongodbLogo from "../../images/mongodb.png";
 //
 // Cursor is Experimental because its own shell and write tools are denied only
 // through a .cursor/cli.json that hasn't been verified against --force
-// (backend/tools/harness.go). Claude Code and opencode have theirs switched off
-// by a flag or config that was tested, so they are merely Beta.
+// (backend/tools/harness.go).
 export const AI_PROVIDERS: Record<
   Provider,
   { label: string; logo: string; invertOnDark?: boolean; stage?: Stage }
 > = {
   openrouter: { label: "OpenRouter", logo: openrouterLogo },
-  "claude-code": { label: "Claude Code", logo: claudeLogo, stage: "beta" },
+  "claude-code": { label: "Claude Code", logo: claudeLogo },
   cursor: { label: "Cursor", logo: cursorLogo, invertOnDark: true, stage: "experimental" },
-  opencode: { label: "Opencode", logo: opencodeLogo, invertOnDark: true, stage: "beta" },
+  opencode: { label: "Opencode", logo: opencodeLogo, invertOnDark: true },
 };
 
 export const experimentalWarning = (label: string) =>
   `${label} runs its own shell and file tools directly on your machine, outside VibeOps' sandbox and approval prompts. VibeOps' own tools are still gated.`;
-
-// Newest connectors, tagged Beta in Settings.
-export const BETA_CONNECTORS = ["neon", "supabase", "az", "aws", "gcloud", "atlas"];
 
 export const connectorLogos: Record<string, string> = {
   wrangler: cloudflareLogo,

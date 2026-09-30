@@ -6,6 +6,12 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.6] — 2026-09-30
+
+### Changed
+
+- While the agent is working, the tool call list shows only the latest 5 calls instead of every one; the full list is back once the reply finishes.
+
 ## [0.9.5] — 2026-09-30
 
 ### Changed

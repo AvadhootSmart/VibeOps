@@ -23,16 +23,14 @@ import { AI_PROVIDERS } from "@/lib/constants";
 // Unlike OpenRouter there's no key to store — the CLI carries its own auth — so
 // this only detects the binary and picks a model.
 //
-// The model list comes from the CLI (`Models`), because Cursor's and opencode's
-// catalogues are hundreds of entries long and change weekly. Claude Code has no
-// listing command, so it passes `models` explicitly instead.
+// The model list comes from the CLI (`Models`), because the catalogues change
+// with every CLI release.
 export function HarnessProvider({
   id,
   label,
   logo,
   invertOnDark,
   loginHint,
-  models,
   active,
   expanded,
   onActivate,
@@ -43,7 +41,6 @@ export function HarnessProvider({
   invertOnDark?: boolean;
   /** Shown when the CLI isn't on PATH — the command the user runs themselves. */
   loginHint: React.ReactNode;
-  models?: (version: string) => { id: string; name: string }[];
   active: boolean;
   /** Row is open. Only then is the model list worth a second CLI subprocess. */
   expanded: boolean;
@@ -66,18 +63,16 @@ export function HarnessProvider({
     getConfig()
       .then((c) => setModel(c.agentModels[id] ?? ""))
       .catch(() => {});
-  }, [id, models]);
+  }, [id]);
 
-  // `cursor-agent models` / `opencode models` each spawn a subprocess and the
-  // list is only readable once the row is open, so it waits for that.
+  // Listing spawns a subprocess and is only readable once the row is open, so
+  // it waits for that.
   useEffect(() => {
     if (!expanded || !installed) return;
-    if (models) setOptions(models(version));
-    else
-      Models(id)
-        .then(setOptions)
-        .catch((e) => logError("provider", `Failed to list ${id} models`, e));
-  }, [expanded, installed, version, id, models]);
+    Models(id)
+      .then(setOptions)
+      .catch((e) => logError("provider", `Failed to list ${id} models`, e));
+  }, [expanded, installed, id]);
 
   async function selectModel(value: string) {
     setModel(value);

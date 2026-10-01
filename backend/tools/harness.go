@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -252,15 +255,15 @@ func version(ctx context.Context, bin string) string {
 
 // Models lists what the installed CLI will accept for --model. Asked of the CLI
 // rather than hardcoded because Cursor's and opencode's catalogues are large and
-// change weekly; a baked-in list would be wrong within the month. Claude Code
-// has no listing command, so it returns nothing and the frontend falls back to
-// its own version-gated list.
+// change weekly; a baked-in list would be wrong within the month.
 func (h *Harness) Models(agent string) []Model {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
 	defer cancel()
 	bin := bins[agent]
 	var args []string
 	switch agent {
+	case "claude-code":
+		return claudeModels(ctx)
 	case "cursor", "opencode":
 		args = []string{"models"}
 	default:
@@ -289,6 +292,81 @@ func (h *Harness) Models(agent string) []Model {
 		}
 	}
 	return models
+}
+
+// claudeCatalogEntry matches an entry of the model catalog Claude Code bundles
+// into its own binary (or cli.js for npm installs).
+var claudeCatalogEntry = regexp.MustCompile(`id:"(claude-[a-z0-9-]+)",family:"([a-z]+)",display_name:"([^"]+)"`)
+
+// claudeModels reads the model catalog out of the installed `claude` itself,
+// since it has no list-models command — so the picker always matches what that
+// exact CLI version knows. Through the shell, because on Windows the CLI lives
+// inside WSL. ponytail: scrapes an internal format; if Anthropic reshapes it
+// this returns nothing and the picker offers only the CLI's default.
+func claudeModels(ctx context.Context) []Model {
+	cmd, err := shell.Command(ctx, nil, "sh", "-c",
+		`LC_ALL=C grep -aoE '`+claudeCatalogEntry.String()+`' "$(readlink -f "$(command -v claude)")"`)
+	if err != nil {
+		return []Model{}
+	}
+	out, _ := cmd.Output()
+	return parseClaudeCatalog(string(out))
+}
+
+// claudeAliases are the families `--model` accepts by bare name, resolving to
+// the newest model the CLI knows. Families outside it (e.g. mythos) are in the
+// catalog but not offered to subscriptions, so they are left out.
+var claudeAliases = []string{"fable", "opus", "sonnet", "haiku"}
+
+func parseClaudeCatalog(out string) []Model {
+	type entry struct{ id, family, name, version string }
+	var entries []entry
+	seen := map[string]bool{}
+	for _, m := range claudeCatalogEntry.FindAllStringSubmatch(out, -1) {
+		id, family, name := m[1], m[2], m[3]
+		// claude-3-* are retired.
+		if seen[id] || strings.HasPrefix(id, "claude-3-") || !slices.Contains(claudeAliases, family) {
+			continue
+		}
+		seen[id] = true
+		_, version, _ := strings.Cut(name, " ")
+		entries = append(entries, entry{id, family, name, version})
+	}
+	slices.SortStableFunc(entries, func(a, b entry) int {
+		return compareVersions(b.version, a.version)
+	})
+
+	models := []Model{}
+	for _, alias := range claudeAliases {
+		for _, e := range entries {
+			if e.family == alias {
+				models = append(models, Model{ID: alias, Name: fmt.Sprintf("Latest %s (%s)", strings.Fields(e.name)[0], e.version)})
+				break
+			}
+		}
+	}
+	for _, e := range entries {
+		models = append(models, Model{ID: e.id, Name: e.name})
+	}
+	return models
+}
+
+// compareVersions orders dotted versions numerically; a missing part reads as 0.
+func compareVersions(a, b string) int {
+	pa, pb := strings.Split(a, "."), strings.Split(b, ".")
+	for i := range max(len(pa), len(pb)) {
+		var x, y int
+		if i < len(pa) {
+			x, _ = strconv.Atoi(pa[i])
+		}
+		if i < len(pb) {
+			y, _ = strconv.Atoi(pb[i])
+		}
+		if x != y {
+			return x - y
+		}
+	}
+	return 0
 }
 
 // Run executes one turn. agent picks the CLI; prompt is the new user message;

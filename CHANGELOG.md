@@ -6,6 +6,12 @@ VibeOps is **alpha** — the tool bridge, connector list and settings shape are 
 
 ## [Unreleased]
 
+## [0.9.7] — 2026-10-02
+
+### Changed
+
+- **Claude Code's model list comes from your installed `claude` CLI** instead of a list baked into VibeOps, so new models (e.g. Sonnet 5.5) show up as soon as you update the CLI. The `fable`, `opus`, `sonnet` and `haiku` aliases are listed first and always point at the newest model in that family.
+
 ## [0.9.6] — 2026-09-30
 
 ### Changed
